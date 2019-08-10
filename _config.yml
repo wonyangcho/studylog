@@ -1,1 +1,8 @@
 theme: jekyll-theme-minimal
+
+title                    : "GitHub Pages - devinlfe.github.io"
+name                     : " "
+description              : "       "
+url                      : "https://devinlife.github.io"
+baseurl                  : <{{ site.url }}{{ site.baseurl }}/blog/start-blog/>
+
