@@ -294,3 +294,5 @@ defaults:
       comments: # true
       share: true
       related: true
+      
+google_fonts: "Nanum+Gothic:400,700" 
