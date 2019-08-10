@@ -12,7 +12,7 @@
 
 
 # 테마 설정에 대한 부분입니다. 기본 설정을 유지하였습니다.
-theme                  : "minimal-mistakes-jekyll"
+theme: jekyll-theme-minimal
 #remote_theme           : "mmistakes/minimal-mistakes"
 
 # 스킨을 설정하는 부분입니다. 
