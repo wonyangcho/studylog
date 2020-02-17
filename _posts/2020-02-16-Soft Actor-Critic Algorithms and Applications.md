@@ -53,20 +53,20 @@ For example, consider a robot (Figure 2) navigating its way to the goal (blue cr
 
 ### Introduction
 
-- One cause for the poor sample efficiency of deep RL methods is on-policy learning
+- **One cause for the poor sample efficiency** of deep RL methods is on-policy learning
+  
   - some of the most commonly used deep RL algorithms, such as TRPO (Schulman et al., 2015), PPO (Schulman et al.,2017b) or A3C (Mnih et al., 2016), **require new samples to be collected for (nearly) every update to the policy**.
   
-    
   - Off-policy algorithms aim to reuse past experience
     - a major challenge for stability and convergence.
     
       
   
-- SAC as presented in (Haarnoja et al., 2018c) can suffer from brittleness to the temperature hyperparameter. 
+- SAC as presented in (Haarnoja et al., 2018c) can **suffer from brittleness to the temperature hyperparameter**. 
   
   
   
-- an automatic gradient-based temperature tuning method that adjusts the expected entropy over the visited states to match a target value.
+- **an automatic gradient-based temperature tuning method** that adjusts the expected entropy over the visited states to match a target value.
 
 
 
@@ -115,7 +115,7 @@ $$
 
 -  large continuous domains require us to derive **a practical approximation to soft policy iteration.**
 
--  consider a parameterized soft Q-function $Q_\theta (s_t,a_t)$ and a tractable policy $\pi_{\phi} (a_t|s_t)$
+-  consider **a parameterized soft Q-function $Q_\theta (s_t,a_t)$** and **a tractable policy $\pi_{\phi} (a_t|s_t)$**
 
 - The soft Q-function parameters can be trained to minimize the soft Bellman residual
   $$
@@ -131,11 +131,11 @@ $$
 
   
 
-- The policy parameters can be learned by directly minimizing the expected KL-divergence in Equation 4 (multiplied by $\alpha$ and ignoring the constant log-partition function and by $\alpha$ )
+- **The policy parameters can be learned by directly minimizing the expected KL-divergence in Equation 4** (multiplied by $\alpha$ and ignoring the constant log-partition function and by $\alpha$ )
 
 
 $$
-J_{\pi} (\phi)=\mathbb{E}_{s_t \sim \mathcal{D}} \left[ \mathbb{E}_{a_t \sim {\pi}_{\phi}}[\alpha log (\pi_{\phi}(a_t | s_t))-Q_{\theta}(s_t,s_t)] \right]\qquad(7)
+J_{\pi} (\phi)=\mathbb{E}_{s_t \sim \mathcal{D}} \left[ \mathbb{E}_{a_t \sim {\pi}_{\phi}}[\alpha log (\pi_{\phi}(a_t | s_t))-Q_{\theta}(s_t,a_t)] \right]\qquad(7)
 $$
 
 
@@ -150,7 +150,7 @@ $$
   $\epsilon_t$ : an input nosie vector. r, sampled from some fixed distribution, such as a spherical Gaussian.
 
 
-  rewrite the objective in Equation 7 as
+  <u>rewrite the objective in Equation 7</u> as
 
 $$
 J_{\pi} (\phi)=\mathbb{E}_{s_t \sim \mathcal{D},\epsilon_t \sim \mathcal{N}} \left[ {\alpha} \  log \pi_{\phi}(f_{\phi}(\epsilon_t ; s_t |s_t)-Q_{\theta}(s_t,f_{\phi} (\epsilon_t; s_t)) \right]\qquad(9)
@@ -161,8 +161,13 @@ $$
 \hat{\bigtriangledown}_{\phi}J_{\pi}(\phi) = \bigtriangledown_{\phi}{\alpha}\ log (\pi_{\phi}(a_t|s_t))+(\bigtriangledown_{a_t} \alpha \ log(\pi_{\phi}(a_t|s_t))-\bigtriangledown_{a_t} Q(s_t,a_t))\bigtriangledown_{\phi}f_{\phi}(\epsilon_t;s_t),\qquad(10)
 $$
 
+​		where $a_t$ is evaluated at $f_\phi(\epsilon;s_t)$ 
+
+
 
 ### Automating Entrophy Adjustment for Maximum Entropy RL
+
+
 
 - Instead of requiring the user to set the temperature manually, we can automate this process by **formulating a different maximum entropy reinforcement learning objective, where the entropy is treated as a constraint.**
 - We show that **the dual to this constrained optimization** leads to the soft actor-critic updates, along with an additional <u>update for the dual variable, which plays the role of the temperature</u>.
@@ -170,7 +175,7 @@ $$
 
 
 
-- Our aim is to find a stochastic policy with maximal expected return that satisfies a minimum expected entropy constraint. Formally, we want to solve the constrained optimization problem
+- Our aim is to find a stochastic policy with maximal expected return that satisfies a minimum expected entropy constraint. Formally, we **want to solve the constrained optimization problem**
 
 
 $$
@@ -180,7 +185,7 @@ $\mathcal{H}$ : the desired minimum expected entropy.
 
 
 
-- Since the policy at time t can only affect the future objective value, we can employ an (approximate) dynamic programming approach, solving for the policy backward through time. We rewrite the objective as an iterated maximization.
+- Since the policy at time t <u>can only affect the future objective value</u>, we can employ an (approximate) dynamic programming approach, <u>solving for the policy backward through time</u>. We rewrite the **objective as an iterated maximization**.
 
 
 $$
@@ -188,7 +193,7 @@ $$
 $$
 
 
-- Starting from the last time step, we change the constrained maximization to the dual problem.
+- Starting from the last time step, we **change the constrained maximization to the dual problem**.
 
 
 $$
@@ -199,11 +204,16 @@ $\alpha_T$ : the dual variable.
 
 
 - We have also used **strong duality**, which holds since the objective is linear and the constraint (entropy) is convex function in $\phi_T$ .
+  
+- This dual objective is closely related to the maximum entropy objective with respect to the policy, and the optimal policy is the maximum entropy policy corresponding to temperature $\alpha_T:\pi_T^*(a_T|S_T;\alpha_T).$
+  
+- **solve for the optimal dual variable** $\alpha^*_T$  as
   $$
   arg\ \underset{\alpha_T}{min} \mathbb{E}_{s_t,a_t \sim \pi_t ^*} [-\alpha_T\ log \pi_T^*(a_T|s_T; \alpha_T)-\alpha_T \mathcal{H}]\qquad(14)
   $$
   
 
+  
 - To simplify notation, we make use of the recursive definition of the soft Q-function
 
 $$
@@ -231,13 +241,16 @@ with $Q_T^*(s_T, a_T) = \mathbb{E}[r(s_T,a_T)].$
 
 
 
-- In this way, we can proceed backwards in time and recursively optimize Equation 11. Note that the optimal policy at time $t$ is a function of the dual variable $\alpha_t$. Similarly, we can solve the optimal dual variable $\alpha_t^*$ after solving for $Q_t^*$ and $\pi_t^*$
+- In this way, we can proceed backwards in time and recursively optimize Equation 11. (Note that the optimal policy at time $t$ is a function of the dual variable $\alpha_t$.) 
+- Similarly, we can solve the optimal dual variable $\alpha_t^*$ after solving for $Q_t^*$ and $\pi_t^*$ (in practice, we will need to resort to function approximators and stochastic gradient descent)
 
 $$
 \alpha_t ^* = arg \ min_{\alpha_t} \mathbb{E}_{a_t \sim  {\pi}_t ^*} [ - \alpha_t \ log \pi_t^* (a_t|s_t;\alpha_t)-\alpha_t \hat{\mathcal{H}}]\qquad(17)
 $$
 
 
+
+- in practice, we will need to resort to function **approximators and stochastic gradient descent**
 
 
 
