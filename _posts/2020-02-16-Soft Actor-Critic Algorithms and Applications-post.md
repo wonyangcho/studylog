@@ -1,11 +1,3 @@
-
----
-title: "Soft Actor-Critic Algorithms and Applications Review"
-date: 2020-02-17 08:26:28 -0400
-categories: review
----
-
-
 ## Soft Actor-Critic Algorithms and Applications
 
 
