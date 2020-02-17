@@ -1,0 +1,329 @@
+
+
+
+
+## Soft Actor-Critic Algorithms and Applications
+
+
+
+[Soft Actor-Critic Webpage](https://sites.google.com/view/sac-and-applications)
+
+[Soft Actor-Critic Github](https://github.com/rail-berkeley/softlearning/)
+
+
+
+### Abstract
+
+- Model-free deep reinforcement learning의 2가지 문제점
+  - high sample complexity
+  - brittleness to hyperparameters
+- Soft Actor-Critic (SAC)
+  - off-policy actor-critic alogrithm based on the maximum entropy RL framework.
+  - the actor aims to simultaneously **maximize expected return and entropy**; that is, <u>to succeed at the task while acting as randomly as possible.</u>
+- Extend SAC to incorporate a number of modifications that accelerate training and improve stability with respect to the hyperparameters, including a constrained formulation that **automatically tunes the temperature hyperparameter**. 
+
+
+
+#### Learning Diverse Skills via Maximum Entropy Deep Reinforcement Learning
+
+[Learning Diverse Skills via Maximum Entropy Deep Reinforcement Learning](https://bair.berkeley.edu/blog/2017/10/06/soft-q-learning/)
+
+
+
+![2020-02-16-Soft Actor-Critic Algorithms and Applications_e5](./2020-02-16-Soft Actor-Critic Algorithms and Applications_e5.png)
+
+
+
+For example, consider a robot (Figure 2) navigating its way to the goal (blue cross) in a simple maze. At training time (Figure 2a), there are two passages that lead to the goal. The agent will likely commit to the solution via the upper passage as it is slightly shorter. However, **if we change the environment by blocking the upper passage with a wall (Figure 2b), the solution the agent has found becomes infeasible.** Since the agent focused entirely on the upper passage during learning, **it has almost no knowledge of the lower passage**. Therefore, adapting to the new situation in Figure 2b requires the agent to relearn the entire task from scratch.
+
+
+
+
+
+![2020-02-16-Soft Actor-Critic Algorithms and Applications_e6](./2020-02-16-Soft Actor-Critic Algorithms and Applications_e6.png)
+
+
+
+- An obvious solution, at the high level, is to ensure the agent explores all promising states while prioritizing the more promising ones. One way to formalize this idea is to define the policy directly in terms of exponentiated Q-values (Figure 3b, green distribution):
+  
+- $\pi (a|s)\propto expQ(s,a) $
+  - This density has the form of the **Boltzmann distribution**, where the Q-function serves as the negative energy, which assigns a non-zero likelihood to all actions.
+
+
+
+### Introduction
+
+- One cause for the poor sample efficiency of deep RL methods is on-policy learning
+  - some of the most commonly used deep RL algorithms, such as TRPO (Schulman et al., 2015), PPO (Schulman et al.,2017b) or A3C (Mnih et al., 2016), **require new samples to be collected for (nearly) every update to the policy**.
+  
+    
+  - Off-policy algorithms aim to reuse past experience
+    - a major challenge for stability and convergence.
+    
+      
+  
+- SAC as presented in (Haarnoja et al., 2018c) can suffer from brittleness to the temperature hyperparameter. 
+  
+  
+  
+- an automatic gradient-based temperature tuning method that adjusts the expected entropy over the visited states to match a target value.
+
+
+
+### Maximum Entropy Reinforcement Learning
+
+
+$$
+\pi^*=argmax_{\pi} \sum_{t}\mathbb{E}_{(s_{t},a_{t})\sim\rho_{\pi}}[r(s_t,a_t)+\alpha\mathcal{H}(\pi(\cdot|s_t))]\qquad(1)
+$$
+$\alpha$ :  the **temperature parameter** that determines <u>the relative importance of the entropy term</u> versus the reward, and thus controls the stochasticity of the optimal policy
+
+
+- The maximum entropy objective has a number of conceptual and practical advantages.
+  - the policy is **incentivized to explore more widely**, while giving up on clearly unpromising avenues. 
+  - the policy can **capture multiple modes of near-optimal behavior**.  
+
+
+
+###  From Soft Policy Iteration to Soft Actor-Critic
+
+
+
+####  Soft Policy Iteration
+
+- a general algorithm for learning optimal maximum entropy policies that **alternates between** policy evaluation and policy improvement in the maximum entropy framework.
+-  For a fixed policy, the **soft Q-value** can be computed iteratively, starting from any function $Q:S\ \mathsf{X}\ A \rightarrow \mathbb{R}$ and repeatedly applying a modified Bellman backup operator $\mathcal{T}^{\pi}$ given by
+
+$$
+\mathcal{T}^{\pi}Q(S_t,a_t)\triangleq r(s_t,a_t)+\gamma\mathbb{E}_{s_{t+1}\sim p}[V(s_{t+1})]\qquad(2)
+$$
+
+where
+$$
+V(s_t) = \mathbb{E}_{a_t \sim \pi} [Q(S_t,a_t)-\alpha log\pi(a_t|s_t)]\qquad(3)
+$$
+
+- In the policy improvement step
+  $$
+  \pi_{new} = arg\ min_{\pi^{'}\in \Pi}D_{KL}\left (\pi^{'}(\cdot|s_t)||{exp({1\over \alpha}Q^{\pi_{old}}(s_t, \cdot)) \over Z^{\pi_{old}}(s_t)} \right)\qquad(4)
+  $$
+  Since in practice we prefer policies that are tractable, **we will additionally restrict the policy to some set of policies $\Pi$ which can correspond**, for example, to a parameterized family of distributions such as Gaussian
+
+
+
+#### Soft Actor-Critic
+
+-  large continuous domains require us to derive **a practical approximation to soft policy iteration.**
+
+-  consider a parameterized soft Q-function $Q_\theta (s_t,a_t)$ and a tractable policy $\pi_{\phi} (a_t|s_t)$
+
+- The soft Q-function parameters can be trained to minimize the soft Bellman residual
+  $$
+  J_{Q} (\theta) = \mathbb{E}_{(s_t,a_t) \sim \mathcal{D}} \left[ {1 \over 2}  (Q_{\theta}(s_t,a_t)-(r(s_t,a_t)+\gamma \mathbb{E}_{s_{t+1} \sim p }[ V_{\bar{\theta}}(s_{t+1})]))^2\right], \qquad(5)
+  $$
+  where the value function is implicitly parameterized through the soft Q-function parameters via Equation 3, and it can be optimized with stochastic gradient
+  $$
+  \hat{\bigtriangledown}_{\theta} J_{Q} (\theta) = \bigtriangledown_{\theta} Q_{\theta} (a_{\theta}, s_{\theta})(Q_{\theta}(s_t,a_t)-(r(s_t,a_t)+\gamma(Q_{\bar{\theta}}(s_{t+1},a(_{t+1}-\alpha log(\pi _{\phi}(a_{t+1}|s_{t+1})))) \qquad(6)
+  $$
+  
+
+  The update makes use of a target soft Q-function with parameters $\bar{\theta}$  that are obtained as an **exponentially moving average of the soft Q-function weights**, which has been shown to stabilize training (Mnih et al., 2015)
+
+  
+
+- The policy parameters can be learned by directly minimizing the expected KL-divergence in Equation 4 (multiplied by $\alpha$ and ignoring the constant log-partition function and by $\alpha$ )
+
+
+$$
+J_{\pi} (\phi)=\mathbb{E}_{s_t \sim \mathcal{D}} \left[ \mathbb{E}_{a_t \sim {\pi}_{\phi}}[\alpha log (\pi_{\phi}(a_t | s_t))-Q_{\theta}(s_t,s_t)] \right]\qquad(7)
+$$
+
+
+- In our case, the target density is the Q-function, which is represented by a neural network an can be differentiated, and it is thus convenient to **apply the reparameterization trick instead**, resulting in a lower variance estimator.
+
+  - To that end, we reparameterize the policy using a neural network transformation
+
+  $$
+  \mathbb{a}_t = f_{\phi}(\epsilon_t ; s_t),\qquad(8)
+  $$
+
+  $\epsilon_t$ : an input nosie vector. r, sampled from some fixed distribution, such as a spherical Gaussian.
+
+
+  rewrite the objective in Equation 7 as
+
+$$
+J_{\pi} (\phi)=\mathbb{E}_{s_t \sim \mathcal{D},\epsilon_t \sim \mathcal{N}} \left[ {\alpha} \  log \pi_{\phi}(f_{\phi}(\epsilon_t ; s_t |s_t)-Q_{\theta}(s_t,f_{\phi} (\epsilon_t; s_t)) \right]\qquad(9)
+$$
+
+​		where $\pi_{\phi}$ is defined implicitly in terms of $f_{\phi}$
+$$
+\hat{\bigtriangledown}_{\phi}J_{\pi}(\phi) = \bigtriangledown_{\phi}{\alpha}\ log (\pi_{\phi}(a_t|s_t))+(\bigtriangledown_{a_t} \alpha \ log(\pi_{\phi}(a_t|s_t))-\bigtriangledown_{a_t} Q(s_t,a_t))\bigtriangledown_{\phi}f_{\phi}(\epsilon_t;s_t),\qquad(10)
+$$
+
+
+### Automating Entrophy Adjustment for Maximum Entropy RL
+
+- Instead of requiring the user to set the temperature manually, we can automate this process by **formulating a different maximum entropy reinforcement learning objective, where the entropy is treated as a constraint.**
+- We show that **the dual to this constrained optimization** leads to the soft actor-critic updates, along with an additional <u>update for the dual variable, which plays the role of the temperature</u>.
+- We will derive the update for finite horizon case, and then derive an approximation for stationary policies by dropping the time dependencies from the policy, soft Q-function, and the temperature.
+
+
+
+- Our aim is to find a stochastic policy with maximal expected return that satisfies a minimum expected entropy constraint. Formally, we want to solve the constrained optimization problem
+
+
+$$
+\underset{\pi_0:T}{max} \mathbb{E}_{\rho_\pi} \left[ \sum_{t=0}^T r(s_t,a_t) \right]\ s.t \ \mathbb{E}_{(s_t,a_t) \sim \rho_\pi} [-log(\pi_t(a_t|s_t))] \ge \mathcal{H} \quad \forall t\qquad(11)
+$$
+$\mathcal{H}$ : the desired minimum expected entropy.
+
+
+
+- Since the policy at time t can only affect the future objective value, we can employ an (approximate) dynamic programming approach, solving for the policy backward through time. We rewrite the objective as an iterated maximization.
+
+
+$$
+\underset{\pi_0} {max} ( \mathbb{E}[r(s_o,a_0)]+\underset{\pi_1}{max}(\mathbb{E}[...]+\underset{\pi_T}{max} \mathbb{E}[r(s_T,a_T)]))\qquad(12)
+$$
+
+
+- Starting from the last time step, we change the constrained maximization to the dual problem.
+
+
+$$
+\underset{\pi_T}{max} \mathbb{E}_{(s_t,a_t) \sim \rho_{\pi}} [r(s_T,a_T)] = \underset{\alpha_T \ge 0}{min} \ \underset{\pi_T}{max} \mathbb{E} [r(s_T,a_T)-\alpha_T \ log \pi(a_T|S_T)]-\alpha_T \mathcal{H},\qquad(13)
+$$
+$\alpha_T$ : the dual variable.
+
+
+
+- We have also used **strong duality**, which holds since the objective is linear and the constraint (entropy) is convex function in $\phi_T$ .
+  $$
+  arg\ \underset{\alpha_T}{min} \mathbb{E}_{s_t,a_t \sim \pi_t ^*} [-\alpha_T\ log \pi_T^*(a_T|s_T; \alpha_T)-\alpha_T \mathcal{H}]\qquad(14)
+  $$
+  
+
+- To simplify notation, we make use of the recursive definition of the soft Q-function
+
+$$
+Q_t^*(s_t,a_t; \pi_{t+1:T}^*, \alpha_{t+1:T}^*) = \mathbb{E}[r(s_t,a_t)]+\mathbb{E}_{\rho_\pi}[Q_{t+1}^* (s_{t+1},a_{t+1})-\alpha_{t+1}^*\ log \ \pi_{t+1}^* (a_{t+1}|s_{t+1})]\qquad(15)
+$$
+
+with $Q_T^*(s_T, a_T) = \mathbb{E}[r(s_T,a_T)].$ 
+
+
+
+- Now, subject to the entropy constraints and again using the dual problem, we have
+  $$
+  \underset{\pi_{T-1}}{max}(\mathbb{E}[r(s_{T-1},a_{T-1})]+\underset{\pi_{T}}{max} \mathbb{E}[r(s_T,a_T)])\qquad(16)
+  $$
+
+  $$
+  = \underset{\pi_{T-1}}{max}(Q_{T-1}^* (s_{T-1}, a_{T-1})-\alpha_T \mathcal{H})
+  $$
+
+  $$
+  = \underset{\alpha_T \ge 0}{min}\ \underset {\pi_{T-1}}{max} ( \mathbb {E} [Q_{T-1}^* (s_{T-1},a_{T-1})]- \mathbb {E}[\alpha_{T-1}\ log \pi(a_{T-1}|s_{T-1})]-\alpha_{T-1} \mathcal{H}) + \alpha_T^* \mathcal{H}
+  $$
+
+  
+
+
+
+- In this way, we can proceed backwards in time and recursively optimize Equation 11. Note that the optimal policy at time $t$ is a function of the dual variable $\alpha_t$. Similarly, we can solve the optimal dual variable $\alpha_t^*$ after solving for $Q_t^*$ and $\pi_t^*$
+
+$$
+\alpha_t ^* = arg \ min_{\alpha_t} \mathbb{E}_{a_t \sim  {\pi}_t ^*} [ - \alpha_t \ log \pi_t^* (a_t|s_t;\alpha_t)-\alpha_t \hat{\mathcal{H}}]\qquad(17)
+$$
+
+
+
+
+
+### Practical Algorithm
+
+
+
+- Our algorithm makes **use of two soft Q-functions** t<u>o mitigate positive bias in the policy improvement step</u> that is known to degrade performance of value based methods (Hasselt, 2010; Fujimoto et al., 2018).
+
+-  We then **use the minimum of the the soft Q-functions for** the stochastic gradient in Equation 6 and policy gradient in Equation 10, as proposed by Fujimoto et al. (2018).
+
+- Although our algorithm can learn challenging tasks, including a 21-dimensional Humanoid, using just a single Q-function, we found <u>two soft Q-functions significantly speed up training</u>, especially on harder tasks.
+
+- In addition to the soft Q-function and the policy, we also learn $\alpha$  by minimizing the dual objective in Equation 17. This can be done by **approximating dual gradient descent** (Boyd & Vandenberghe, 2004).
+
+- we compute gradients for α with the following objective:
+  $$
+  J(\alpha) = \mathbb{E}_{a_t \sim \pi _t}[- {\alpha} \ log \pi_t(a_t | s_t) - \alpha \hat {\mathcal{H}}].\qquad(18)
+  $$
+  
+
+
+
+![2020-02-16-Soft Actor-Critic Algorithms and Applications_a1](./2020-02-16-Soft Actor-Critic Algorithms and Applications_a1.png)
+
+
+
+### 실험
+
+- The goal of our experimental evaluation is to understand **how the sample complexity and stability of our method compares with prior off-policy and on-policy** deep reinforcement learning algorithms.
+- compare our method to prior techniques on a range of challenging continuous control tasks from the *OpenAI gym benchmark suite* (Brockman et al., 2016) and also on the *rllab implementation of the Humanoid task* (Duan et al., 2016).
+
+
+
+#### Simulated Benchmarks
+
+![e1](./2020-02-16-Soft Actor-Critic Algorithms and Applications_e1.png)
+
+- The results also indicate that the automatic temperature tuning scheme works well across all the environments, and thus **effectively eliminates the need for tuning the temperature**.
+
+
+
+#### Quadrupedal Locomotion in the Real World
+
+
+
+[*We trained the Minitaur robot to walk in 2 hours. (Google Brain)*](https://youtu.be/FmMPHL3TcrE)
+
+[Even though the policy was trained on flat terrain, it generalizes surprisingly well to unseen terrains. (Google Brain)](https://youtu.be/KOObeIjzXTY)
+
+
+
+![e2](./2020-02-16-Soft Actor-Critic Algorithms and Applications_e2.png)
+
+
+
+- In the real world, the utility of a locomotion policy hinges critically on its ability to generalize to different terrains and obstacles. 
+- Although we **trained our policy only on flat terrain**, as illustrated in Figure 2 (first row), we then tested it on varied terrains and obstacles (other rows). 
+- Because soft actor-critic learns robust policies, **due to entropy maximization at training time**, the policy can readily generalize to these perturbations without any additional learning. 
+- The robot **is able to walk up and down a slope** (first row), **ram through an obstacle made of wooden blocks** (second row), and **step down stairs** (third row) without difficulty, despite not being trained in these settings. 
+
+
+
+#### Dexterous Hand Manipulation
+
+[*Rollouts from SAC policy trained for Dynamixel Claw task from vision. The robot must rotate the valve so that the colored peg faces the right. The video embedded in the bottom right corner shows the frames as seen by the policy. (UC Berkeley)*](https://youtu.be/HZcapuzsuOA?list=PLu1urizo_exRQcDIzUU-0wiWiMUDTVfFD)
+
+[*Testing robustness of the learned policy against visual perturbations. The robot must rotate the valve so that the colored peg faces the right. (UC Berkeley)*](https://youtu.be/f25vEN69fZA?list=PLu1urizo_exRQcDIzUU-0wiWiMUDTVfFD)
+
+
+
+- This task is exceptionally challenging due to both the perception challenges and the physical difficulty of rotating the valve with such a complex robotic hand.
+- **Learning this task directly from raw RGB images** requires 300k environment interaction steps, which is the equivalent of 20 hours of training, including all resets and neural network training time (Figure 4).
+- To our knowledge, this task represents one of **the most complex robotic manipulation tasks learned directly end-to-end from raw images** in the real world with deep reinforcement learning, **without any simulation or pretraining**.
+- We also learned the same task **without images by feeding the valve position** directly to the neural networks. 
+- In that case, learning takes 3 hours, which is substantially faster than what has been reported earlier on the same task using PPO (7.4 hours) (Zhu et al., 2018).
+
+![2020-02-16-Soft Actor-Critic Algorithms and Applications_e3](./2020-02-16-Soft Actor-Critic Algorithms and Applications_e3.png)
+
+![2020-02-16-Soft Actor-Critic Algorithms and Applicationse4](./2020-02-16-Soft Actor-Critic Algorithms and Applicationse4.png)
+
+
+
+### 결론
+
+
+
+- an **off-policy maximum entropy deep** reinforcement learning algorithm that <u>provides sample-efficient learning</u> while <u>retaining the benefits of entropy maximization and stability</u>.
+
