@@ -76,3 +76,7 @@ hand pose estimation approach를 분류하는 한 가지 방법
 
 - generative or
 - discriminative
+
+
+
+가장 최근의 monocular RGB based 방법은 RGB 이미지로만 테스트를 수행하더라도 훈련을 위해 depth information을 활용한다.
