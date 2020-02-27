@@ -154,9 +154,160 @@ original cross modal 과 더 많은 modality로 확장한 것에 대한 graphica
 
 
 
+또 다른 방법은 $q_{\phi_x,w_1}(z|x,w_1)$ 와 $q_{\phi_x}(z|x)$ 를 결합해서 (jointly) 학습하고 두 분포를 함께 정렬하여 일치하는지 확인하는 것이다.  
+
+이 논문에서는 추론 능력을 향상 시키기 위해서 단일 modality로 부터 학습한 latent space를 joint modality로 학습한 latent space와 정렬하기 위해  joint training objective를 제안한다.
+
+즉,  modality $w$를 이용하기 위해 $z_x$를 $z_\text{joint}$와 align 하고 싶은 것이다.  이것은  $q_{\phi_x,w_1}(z|x,w_1)$ 와 $q_{\phi_x}(z|x)$ 를 최대한 가깝게 하려는 것이다. 
+
+
+
+##### KL divergence Loss
+
+
+$$
+\mathcal{L}(\phi_{x,w_1}, \phi_x, \theta_y,\theta_{w_1}) = \text{ELBO}_\text{cVAE}(x,w_1;y,w_1;\phi_{x,w_1},\theta_y,\theta_{w_1}) \\+ \text{ELBO}_\text{cVAE}(x;y,w_1;\phi_x,\theta_y,\theta_{w_1})\\ -\beta \prime D_\text{KL} (q_{\phi_x,w_1}(z_\text{zoint}|x,w_1)||q_{\phi_x}(z_x|x)) \qquad(3)
+$$
+
+
+(식 3)은 인코딩 측면에서 2가지 문제점이 있다.
+
+1. modality 혹은 N이 증가할 수록 joint encoder $q_{\phi_x,w_1}$은 학습하기 어려워 진다.
+2. 단지, 2개의 인코더 $q_{\phi_x}$와 $q_{\phi_x,w_1}$ 를 가지고는 data pair ($w_1,y$)를 이용할 수 없다.
+
+
+
+이런 문제점을 해결하기위 해 product of experts (PoE) 를 제안한다.
+
+
+
+##### Product of Gaussian Experts
+
+joint posterior는 각각의 posterior의 곱에 비례한다는 것이 입증되어 있다. 즉,
+$$
+q(z|x,w_1) \propto p(z)q(z|x)q(z|w_1)
+$$
+그 목적을 위해, 우리는 unimodal latent representation으로부터 joint latent representation을 추정할 수 있다.
+
+VAE에서 $p(z)$와 $(q|z)$ 는 Gaussian 이다.  Gaussian expert $q(z|x)$와 $q(z|w_1)$으로 부터 $q(|x,w_1)$을 도출할 수 있다. (그림 2d).
+
+shared decoder의 도움을 받아, 다음 objective를 이용해서 joint latent representation에 도달한다. 
+$$
+\mathcal{L}(\phi_x,\phi_{w_1},\theta_y,\theta_{w_1}) = \text{ELBO}_\text{cVAE}(x;y;w_1;\phi_x,\theta_y,\theta_{w_1}) \\
++\text{ELBO}_\text{cVAE}(w_1;y,w_1;\phi_{w_1},\theta_y,\theta_{w_1}) \\
++\text{ELBO}_\text{cVAE}(x,w_1;y,w_1;\phi_x,\phi_{w_1},\theta_y,\theta_{w_1}) \\
+= E_{z_x \sim q_{\theta_x}}\ log\ p_{\theta} (y,w_1|z_x) + E_{{z_{w_1}} \sim q_{\phi_{w_1}}}\ log\ p_{\theta} (y,w_1|z_{w_1}) \\
++E_{z_\text{joint} \sim \text{GPod}(z_x,z_{w_1})}\ log\ p_{\theta} (y,w_1|z_\text{joint}) \\
+- \beta(D_\text{KL}(q_\theta(z_x|x)||p(z))+(D_\text{KL}(q_\theta(z_{w_1}|w_1)||p(z))) \qquad(4)
+$$
+여기서 $GProd(\cdot)$ 는 the product of Gaussian experts.
+
+
+
+(식 3)의 KL divergence로 정렬 하는 경우 처럼 $x$와 $w_1$ 의 joint encoder $\phi_{x,w_1}$ 는 필요하지 않다. 대신에 $q(z|x)$와 $q(z|w_1)$을 2개의 Gaussian Expert로 사용하였다. 
+
+$q(z |x) = \mathcal{N}(\mu_1, \Sigma_1)$ , $q(z |w_1) = \mathcal{N}(\mu_2, \Sigma_2)$ 로 가정 하자. 그러면 Gaussian experts 는 product는 mean $\mu$ 과 covariance  $\Sigma$ 를 갖는 Gaussian 이다. 
+$$
+\mu = (\mu_1T_1+\mu_2T_2)/(T_1+T_2), \\
+\sigma = 1/(T_1+T_2) \\ 
+\text{여기서} \quad T_1=1/\Sigma_1, T2=1/\Sigma_2
+$$
+ 
+
+
+
+![3_13](3_13.png)
+
+
+
+![3_14](3_14.png)
+
+
+
 ### Impementation Details
 
+
+
 #### Data Pre-processing and Augmentation
+
+- RGB 이미지에서 hand를 포함하는 영역을 ground truth mask를 이용해서 crop하고 256x256으로 resizing 한다.
+- depth image에서 대응되는 영역은 camera intrinsic parameter를 사용해서 point cloud로 변환된다. 카메라의 내부 파라미터로는 초점거리(focal length), 주점(principal point), 비대칭계수(skew coefficient) 같은 것들이 있다.
+- 각 training step마다 training input 으로서 256개의 다른 point가 샘플링 된다.
+
+
+
+#### Viewpoint correction
+
+- RGB 이미지로 부터 hand를 cropping 한 후에 image 내에서의 hand center를 이미지의 중앙으로 이동시킨다.
+
+
+
+#### Data augmentation
+
+- scaled randomly between [1,1.2]
+- translated [-20,20] pixels
+- camera view axis를 중심으로 rotated [ $-\pi$,$\pi$] 
+- hue of image 는 [-0.1,01] 구간 내에서 랜덤으로 조정
+- point cloud는 camera view axis를 중심으로 랜덤하게 회전
+- 3D pose label도 그것에 따라서 회전
+
+
+
+### Encoder and Decoder Modules
+
+- 이 작업에서는 RGB와 point cloud 에 대한 encoder를 학습하고 3D hand pose, point cloud 그리고 RGB image의 2D hand key point의 heat map에 대한 decoder를 학습한다.
+  
+
+- RGB image encoder: Resnet-18. latent variable의 mean과 variance vector를 예측하기 위해 2개의 추가적인 Fully connected layer를 사용
+
+- point cloud  encoder : ResPEL network (연산부하 때문에 hidden unit의 수를 절반으로 줄임)
+
+- heat map decoder:  DC-GAN의 decoder architechture
+
+- heat map decoder loss function
+  $$
+  \mathcal{L}_\text{heat} = \sum^J_{j-1} \lVert \hat{H}_j-H_j \rVert \qquad(7) \\H_j \ : \ \text{ground-truth heatmap for the}j\text{-th hand keypoint} \\
+  \hat{H}_j \ : \ \text{the prediction}
+  $$
+
+  
+
+- point cloud decoder: FoldingNet architecture
+
+- point cloud decoder loss function
+
+  - **Chamfer distance** : the sum of the Euclidean distance between points from one set and its closest point in the other set
+    $$
+    \mathcal{L}_\text{Chamfer} = {1 \over {|P|} } \sum_{p \in P} min_{\hat{p} \in \hat{P}} \lVert \hat{p} - p \rVert + {1 \over {|\hat{P}|} } \sum_{\hat{p} \in \hat{P} } min_{p \in P} \lVert \hat{p} - p \rVert \qquad (8)
+    $$
+    
+
+  - **Earth Mover's disstance (EMD)** : one-to-one bijective (전단사) correspondences are established between two point clouds, and the Euclidean distances between them are summed.
+    $$
+    \mathcal{L}_\text{EMD} = min_{\phi:P \rightarrow \hat{P}} { 1 \over \lvert P \rvert} \sum_{p \in P} \lVert p-\phi(p) \rVert \qquad (9)
+    $$
+
+- 3d pose decoder: 4 fully-connected layers with 128 hidden units for each layer.
+
+- 3d pose decoder loss function
+  $$
+  \mathcal{L}_\text{pose} = \lVert \hat{y}-y \rVert \qquad(10)
+  $$
+
+- **reconstruction loss functions**
+  $$
+  \mathcal{L}_\text{recon} = \mathcal{L}_\text{pose} + \lambda_\text{heat} \mathcal{L}_\text{heat} + \lambda_\text{cloud}(\mathcal{L}_\text{Chamfer}+\mathcal{L}_\text{EMD}) \qquad (11)
+  $$
+
+
+
+- $$
+  \text{overall loss} = \mathcal{L}_\text{recon} + D_\text{KL}
+  $$
+
+  
+
+
 
 
 
