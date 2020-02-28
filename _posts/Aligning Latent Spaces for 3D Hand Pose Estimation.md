@@ -38,17 +38,17 @@ Depth-based pose estimation은 딥러닝을 이용하면서 매우 정확해 졌
 
 이와 같이 정확한 RGB 기반 3D hand pose estimation은 여전히 필요하며, 특히 monocular viewpoint로 볼 때 더 그러하다.
 
-monocular RGB 입력과 관련된 모호성을 다루기 위해, 이전 작품들은 대량의 교육 데이터에 의존해왔다. 3D hand pose와 같은 정확한 ground truth label을 얻기란 매우 어렵기 때문에 데이터 세트 크기가 순전히 증가함에 따라 얻는 이득은 거의 없다.
+monocular RGB 입력과 관련된 모호성을 다루기 위해, 이전 작품들은 대량의 training데이터에 의존해왔다. 3D hand pose와 같은 정확한 ground truth label을 얻기란 매우 어렵기 때문에 데이터 세트 크기가 순전히 증가함에 따라 얻는 이득은 거의 없다.
 
 3D hand joint position 을 정확하게 annotation하는 것은 어려운 작업이며, 종종 human annotator간에 합의가 거의 이루어지지 않는다.RGB 영상을 생성하기 위해 여러 가지 방법이 개발되었지만, 합성 데이터와 실제 데이터 사이에는 여전히 큰 도메인 간 차이가 존재하여 합성 데이터의 효용을 제한 되고 있다.
 
-RGB 데이터에 대한 정확한 ground truth은 수집하기 어렵지만 label이 부착되지 않은 RGB-D hand드 데이터는 label 부착된 깊이 맵과 함께 활용할 수 있다.
+RGB 데이터에 대한 정확한 ground truth은 수집하기 어렵지만 label이 부착되지 않은 RGB-D hand 데이터는 label 부착된 깊이 맵과 함께 활용할 수 있다.
 
 이 논문에서는 RGB based hand pose estimation을 강화하기 위한 약한 라벨로서 multiple modality를 활용하는 것을 목표로 한다.
 
 
 
-이 논문에서  다양한 hand data의 modality(<u>RGB image, depth map, point clouds, 3D pose, heat map 그리고 segmentation mask</u>) 를 고려 했고 cross-modal inference 문제로 RGB based hand pose estimation를 공식화 했다. 특히, **multi-modal VAE**를 제안했다.
+이 논문에서  다양한 hand data의 modality(<u>RGB image,  depth map, point clouds, 3D pose, heat map 그리고 segmentation mask</u>) 를 고려 했고 cross-modal inference 문제로 RGB based hand pose estimation를 formulate 했다. 특히, **multi-modal VAE**를 제안했다.
 
 
 
@@ -56,7 +56,7 @@ RGB 데이터에 대한 정확한 ground truth은 수집하기 어렵지만 labe
 
 장점
 
-1. 무엇보다도 먼저, 빠르게 수렴하여 잘 구조화된 잠적 공간을 만든다 . 이와 비교하여, multimodal shared latent space은 multiple modality에서 데이터를 추출할 때 변동하는 경향이 있다.
+1. 무엇보다도 먼저, 빠르게 수렴하여 잘 구조화된 잠적 공간을 만든다 . 이와 비교하여, multi-modal shared latent space은 multiple modality에서 데이터를 추출할 때 변동하는 경향이 있다.
 2. 정렬을 통한 학습 계획은 해당되지 않는 데이터와 weak supervision으로 작업하는 데 더 많은 유연성을 제공한다.
 
 결과적인 latent representation은 monocular RGB 이미지로부터 모두 매우 정확한 hand pose를 추정하고 hand surface의 사실적인 point cloud를 합성 할 수 있다
@@ -67,10 +67,10 @@ RGB 데이터에 대한 정확한 ground truth은 수집하기 어렵지만 labe
 
 #### contribution
 
-- RGB based hand pose estimation을 multi-modal learning, cross modal inference로 공식화하고 다양한 modality의 다른 hand input으로부터 학습하기 위한 세 가지 전략 제안
--  latent hand space를 학습하기 위해 point-cloud 및 heat map과 같은 비 전통적인 입력을 탐구하고 RGB based ㅗhand pose estimation 시스템의 정확도를 향상시키기 위해 어떻게 활용할 수 있는지 보여준다. 프레임 워크의 부수적인 산출물은 RGB 이미지에서 실제처럼 보이는 포인트 클라우드를 합성 할 수 있다는 것이다.
+- RGB based hand pose estimation을 multi-modal learning, cross modal inference로 formulate하고 다양한 modality의 다른 hand input으로부터 학습하기 위한 세 가지 전략 제안
+-  latent hand space를 학습하기 위해 point-cloud 및 heat map과 같은  non-conventional 입력을 연구하고 RGB based hand pose estimation 시스템의 정확도를 향상시키기 위해 어떻게 활용할 수 있는지 보여준다. 이 논문에서 제안한 프레임 워크의 side-product는 RGB 이미지에서 실제처럼 보이는 포인트 클라우드를 합성 할 수 있다는 것이다.
 - 공개적으로 사용 가능한 두 가지 벤치 마크로 평가하여 제안 된 프레임 워크가 훈련 중에 auxiliary modality를 최대한 활용하여 RGB pose estimation의 정확도를 높였다.
-  까다로운 RHD 데이터셋에 대한 19%의 엄청난 향상을 포함하여 monocular RGB based hand pose estimation에서 우리의 estimated 포즈는 최신 방법을 능가한다.
+  chanllenging RHD 데이터셋에 대한 19%의 엄청난 향상을 포함하여 monocular RGB based hand pose estimation에서 우리의 estimated 포즈는 최신 방법을 능가한다.
 
 
 
@@ -97,8 +97,9 @@ hand pose estimation approach를 분류하는 한 가지 방법
 
 **cross-modal method의 목적**
 
-- 서로 다른 modality의 관계를 찾아 내는 것. 
-- 어떤 다른 modality의 observation이 주어 졌을 때 target modality의 정보를 찾아 낼 수 있다.
+- 어떤 다른 modality의 observation이 주어 졌을 때 target modality의 정보를 찾아 낼 수 있도록, 서로 다른 modality간의 관계를 찾아 내는 것. 
+
+  
 
 cross modal VAE를 먼저 제시를 하고 multiple modality로 부터의 input과 output을 처리하기 위해 확장한다. 그리고 나서 두가지 latent space alignment operator strategy를 소개하고 이것을 RGB-based hand pose estimation에 적용하는 방법을 안내한다.
 
@@ -149,6 +150,10 @@ original cross modal 과 더 많은 modality로 확장한 것에 대한 graphica
 ![3_3](3_3.png)
 
 
+
+위의 알고리즘 1을 보면 (식 2)는 실제로 응용하기 어려움이 있어 $\text{ELBO}_\text{cVAE} (x;y,w_1;\phi_x,\theta_y,\theta_{w_1})$
+
+처럼 단순화 시켰다.
 
 #### Latent Space Alignment
 
@@ -212,7 +217,7 @@ $$
 \sigma = 1/(T_1+T_2) \\ 
 \text{여기서} \quad T_1=1/\Sigma_1, T2=1/\Sigma_2
 $$
- 
+
 
 
 
@@ -257,7 +262,6 @@ $$
 
 - 이 작업에서는 RGB와 point cloud 에 대한 encoder를 학습하고 3D hand pose, point cloud 그리고 RGB image의 2D hand key point의 heat map에 대한 decoder를 학습한다.
   
-
 - RGB image encoder: Resnet-18. latent variable의 mean과 variance vector를 예측하기 위해 2개의 추가적인 Fully connected layer를 사용
 
 - point cloud  encoder : ResPEL network (연산부하 때문에 hidden unit의 수를 절반으로 줄임)
@@ -280,13 +284,12 @@ $$
     $$
     \mathcal{L}_\text{Chamfer} = {1 \over {|P|} } \sum_{p \in P} min_{\hat{p} \in \hat{P}} \lVert \hat{p} - p \rVert + {1 \over {|\hat{P}|} } \sum_{\hat{p} \in \hat{P} } min_{p \in P} \lVert \hat{p} - p \rVert \qquad (8)
     $$
-    
-
-  - **Earth Mover's disstance (EMD)** : one-to-one bijective (전단사) correspondences are established between two point clouds, and the Euclidean distances between them are summed.
+  
+- **Earth Mover's disstance (EMD)** : one-to-one bijective (전단사) correspondences are established between two point clouds, and the Euclidean distances between them are summed.
     $$
     \mathcal{L}_\text{EMD} = min_{\phi:P \rightarrow \hat{P}} { 1 \over \lvert P \rvert} \sum_{p \in P} \lVert p-\phi(p) \rVert \qquad (9)
     $$
-
+  
 - 3d pose decoder: 4 fully-connected layers with 128 hidden units for each layer.
 
 - 3d pose decoder loss function
