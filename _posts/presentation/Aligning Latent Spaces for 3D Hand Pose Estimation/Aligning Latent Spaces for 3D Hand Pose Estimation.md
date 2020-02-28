@@ -145,7 +145,7 @@ original cross modal 과 더 많은 modality로 확장한 것에 대한 graphica
 
 <식 2>의 variational approximation $q_\phi(z|x,w_1)$ 로 부터 sampling 된 $z$는 <식 1>에서 $q_\phi (z|x)$ 로 부터 sampling된 것보다 더 informative 하기를 기대한다. 게다가, decoder $p_{\theta_{w_1}} $ 에 대한 expectation term은 latent space 가 $y's$ modality에 over-fitting 되는 것을 막아 주기를 기대한다. 
 
-(여기서 부터 $z$를 $z_\text{joint}$ 로 define한다.)
+(extention에서는 $z$를 $z_\text{joint}$ 로 define한다.)
 
 ![3_3](3_3.png)
 
@@ -153,13 +153,13 @@ original cross modal 과 더 많은 modality로 확장한 것에 대한 graphica
 
 위의 알고리즘 1을 보면 (식 2)는 실제로 응용하기 어려움이 있어 $\text{ELBO}_\text{cVAE} (x;y,w_1;\phi_x,\theta_y,\theta_{w_1})$
 
-처럼 단순화 시켰다.
+처럼 단순화 시켰다. 이렇게 하면 richness of the latent space 가 감소되고 decoding capability가 감소되는 문제가 있다.
 
 #### Latent Space Alignment
 
 
 
-또 다른 방법은 $q_{\phi_x,w_1}(z|x,w_1)$ 와 $q_{\phi_x}(z|x)$ 를 결합해서 (jointly) 학습하고 두 분포를 함께 정렬하여 일치하는지 확인하는 것이다.  
+Alternative solution은 $q_{\phi_x,w_1}(z|x,w_1)$ 와 $q_{\phi_x}(z|x)$ 를 결합해서 (jointly) 학습하고 두 분포를 함께 정렬하여 일치하는지 확인하는 것이다.  
 
 이 논문에서는 추론 능력을 향상 시키기 위해서 단일 modality로 부터 학습한 latent space를 joint modality로 학습한 latent space와 정렬하기 위해  joint training objective를 제안한다.
 
@@ -194,7 +194,7 @@ q(z|x,w_1) \propto p(z)q(z|x)q(z|w_1)
 $$
 그 목적을 위해, 우리는 unimodal latent representation으로부터 joint latent representation을 추정할 수 있다.
 
-VAE에서 $p(z)$와 $(q|z)$ 는 Gaussian 이다.  Gaussian expert $q(z|x)$와 $q(z|w_1)$으로 부터 $q(|x,w_1)$을 도출할 수 있다. (그림 2d).
+VAE에서 $p(z)$와 $q(z|\cdot)$ 는 Gaussian 이다.  Gaussian expert $q(z|x)$와 $q(z|w_1)$으로 부터 $q(z|x,w_1)$을 도출할 수 있다. (그림 2d).
 
 shared decoder의 도움을 받아, 다음 objective를 이용해서 joint latent representation에 도달한다. 
 $$
@@ -310,7 +310,7 @@ $$
 
   
 
-
+The overall loss for training is the sum of reconstruction loss and its corresponding $D_\text{KL}$  loss based on(식 2-4.)
 
 
 
