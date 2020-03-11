@@ -29,7 +29,7 @@
 
 - Depth camera나 3D 카메라의 여러 가지 제약 사항으로 Monocular RGB data를 이용하기 시작함.
 - 여전히 RGB 데이터가 많음
-- 기존 연구에서는 depth map과 같은 **다른** **modality****를 이용할 수 있음에도 불구**하고, 오로지 RGB 정보만 사용
+- 기존 연구에서는 depth map과 같은 **다른** **modality를 이용할 수 있음에도 불구**하고, 오로지 RGB 정보만 사용
 
 ------
 
@@ -55,7 +55,7 @@
 
 - **cross-modal method의 목적**
 
-  - 어떤 **다른** **modality****의** **observation**이 주어 졌을 **때** **target modality****의 정보를 찾아 낼 수 있도록**, 서로 다른 modality 간의 관계를 찾아 내는 것. 
+  - 어떤 **다른** **modality**의 **observation**이 주어 졌을 **때** **target modality**의 정보를 찾아 낼 수 있도록, 서로 다른 modality 간의 관계를 찾아 내는 것. 
 
   
 
