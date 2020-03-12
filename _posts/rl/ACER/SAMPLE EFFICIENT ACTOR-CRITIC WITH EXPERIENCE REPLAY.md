@@ -1,4 +1,4 @@
-# SAMPLE EFFICIENT ACTOR-CRITIC WITH EXPERIENCE REPLAY
+## SAMPLE EFFICIENT ACTOR-CRITIC WITH EXPERIENCE REPLAY
 
 
 
@@ -17,7 +17,7 @@
 
 
 
-## Background and Prbolem Setup
+### Background and Prbolem Setup
 
 
 
@@ -214,7 +214,7 @@ $$
 
 
 
-### ACER Pseudo-Code for Discrete Actions
+#### ACER Pseudo-Code for Discrete Actions
 
 
 
@@ -224,9 +224,156 @@ $$
 
 
 
-### RESULTS ON ATARI
+#### RESULTS ON ATARI
 
 
 
 ![1](1.png)
 
+
+
+### Continuous Actor Critic with Experience Replay
+
+
+
+#### Policy Evaluation
+
+- Retrace는 $Q_{\theta_v}$ 를 학습하기 위한 target를 제시하지만 $V_{\theta_v}$ 에 대해서는 target를 제시하지 않는다.
+
+- $Q_{\theta_v}$ 가 주어졌을 때 $V_{\theta_v}$ 를 계산하기 위해서 importance sampling을 사용하지만 이 추정치는 **high variacne**를 갖는다. 
+
+- **Stochastic Dueling Networks(SDN)** 
+
+  -  $V^\pi$ 와 $Q^\pi$ off-policy을 추정하기 위해 사용된  Dueling network 에 영감을 받음.
+
+  - 매 time step 마다 SDN은 $Q^\pi$ 에 대해 $\tilde{Q}_{\theta_v}$ 로 **stochastic 추정**하고 , $V^\pi$ 에 대해 $V_{\theta_v}$  **deterministic 추정**한다.   
+    $$
+    \tilde{Q}_{\theta_v} (x_t,a_t) \sim V_{\theta_v} (x_t) + A_{\theta_v}(x_t,a_t) - {1 \over n} \sum ^n_{i=1} A_{\theta_v} (x_t, u_i), \quad \text {and} \quad u_i \sim \pi_\theta ( \cdot|x_t) \qquad \qquad (13)
+    $$
+    여기서 $n$ 은 parameter 다. 
+
+  - $\tilde{Q}_{\theta_v}$ 를 학습함 으로써 $V^\pi$ 에 대해 학습할 수 있다. $Q^\pi$ 를   $\mathbb{E}_{u_1:n \sim \pi(\cdot|x_t)} \left( \tilde{Q}_{\theta_v} (x_t,a_t)\right) = Q^\pi (x_t, a_t)$ 과 같이 완벽하게 학습했다고 가정하면 $V_{\theta_v}(x_t) = \mathbb{E}_{a \sim \pi (\cdot|x_t)} \left[ \mathbb{E}_{u_1:n \sim \pi(\cdot|x_t)} \left( \tilde{Q}_{\theta_v} (x_t,a_t)\right) \right] = \mathbb{E}_{a \sim \pi (\cdot|x_t)} \left[ Q^\pi (x_t, a_t)\right] = V^\pi(x_t)$
+
+  - 그래서 $\tilde{Q}_{\theta_v} (x_t,a_t)$ 에 대한 taget은 $V_{\theta_v}$ 를 업데이트에 대해 error signal을 제공한다. 
+
+    
+
+     ![3](3.png)
+
+- SDN에 덧붙여서 $V^\pi$ 를 추정하기 위해 다음과 같은 novel target을 만들었다.
+  $$
+  V^{\text{target}} (x_t) = \text{min} \left\{ 1, {{\pi(a_t|x_t)} \over {\mu (a_t|x_t)}}\right\} \left(Q^{\text{ret}}(x_t,a_t) - Q_{\theta_v} (x_t, a_t) \right) + V_{\theta_v}(x_t) \qquad \qquad (14)
+  $$
+
+- 마지막으로 continuous domain 에서 $Q^{\text{ret}}$ 를 추정하기 위해, 조금 다른 truncated importance weights $\bar{\rho}_t = \text{min} \left\{ 1, \left({{\pi(a_t|x_t)} \over {\mu (a_t|x_t)} } \right)^{1 \over d}\right\}$ 여기서 $d$ 는 action space의 dimensionality이다. 
+
+
+
+#### Trust Region Updating
+
+
+
+- continuous action space에서  $g^{\text{acer}}_t$ 를 유도하기 위해 sotchastic dueling network에 대해 ACER policy gradient를 고려해 보자. $\phi$ 에 대해서 
+  $$
+  g^{\text{acer}}_t = \mathbb{E}_{x_t} \left[ \mathbb{E}_{a_t} \left[ \bar{\rho_t} \bigtriangledown_{\phi_{\theta (x_t)}} log f(a_t|\phi_\theta(x_t))(Q^{\text{opc}}(x_t,a_t)-V_{\theta_v}(x_t)) \right] \qquad \qquad \qquad \qquad \qquad \qquad  \\
+  + \underset{a \sim \pi} {\mathbb{E}} \left( \left[ {{\rho_t(a)-c} \over {\rho_t(a)}} \right]_+ (\tilde{Q}_{\theta_v}(x_t,a)-V_{\theta_v}(x_t)) \bigtriangledown_{\phi_\theta (x_t)} log f(a|\phi_\theta (x_t))\right) \right] \qquad \qquad (15)
+  $$
+  
+
+-  (식 15)에서는 $Q^{\text{ret}}$ 대신에 $Q^{\text{opc}}$ 를 사용했다.
+
+- $Q^{\text{opc}}$ 는 truncated importance ratio를 1로 대체 한다는 것을 제외하고는 Retrace 와 같다. (Appendix B 참조)
+
+-  Observation $x_t$ 가 주어졌을 때 다음과 같은 Monte Carlo approximation을 얻기 위해 $a^{'}_t \sim \pi_\theta ( \cdot|x_t)$ 로 샘플링을 한다. 
+  $$
+  \hat{g}^{\text{acer}}_t =  \bar{\rho_t} \bigtriangledown_{\phi_{\theta (x_t)}} log f(a_t|\phi_\theta(x_t))(Q^{\text{opc}}(x_t,a_t)-V_{\theta_v}(x_t))  \qquad \qquad \qquad \qquad \qquad \qquad  \\
+  + \left[ {{\rho_t(a^{'}_t)-c} \over {\rho_t(a^{'}_t)}} \right]_+ (\tilde{Q}_{\theta_v}(x_t,a^{'}_t)-V_{\theta_v}(x_t)) \bigtriangledown_{\phi_\theta (x_t)} log f(a^{'}_t|\phi_\theta (x_t))\qquad \qquad (16)
+  $$
+  
+
+- $f$ 와 $\hat{g}^{\text{acer}}_t$ 가 주어 졌을 때 update를 완성하기 위해 "Discrete Actor Criti With Experience Replay - Efficient Trust Region Policy Opimization"에서 설명한 step을 따른다. 
+
+
+
+#### $Q(\lambda)$ with Off-Policy Correctoins
+
+
+$$
+Q^{\text{opc}} (x_t, a_t) = r_t + \gamma \left[ Q^{\text{opc}} (x_{t+1}, a_{t+1}) - Q(x_{t+1}, a_{t+1}) \right] + \gamma V(x_{t+1}) \qquad \qquad (21)
+$$
+
+
+#### Algorithm ACER for Continuous Actions
+
+![4](4.png)
+
+
+
+#### Reulsts on MuJoCo
+
+
+
+![5](5.png)
+
+
+
+### Theoretical Analysis
+
+
+
+-  Retrace 가 이 논문에서 진전된 an application of the importance weight truncation와  bias correction trick  로 해석될 수 있음을 증명한다. 
+- 다음 수식을 고려해 보자
+
+
+$$
+Q^\pi (x_t, a_t) = \mathbb{E}_{x_{t+1}a_{t+1}} [r_t+ \gamma \rho _{t+1} Q^\pi (x_{t+1},a_{t+1})] \qquad \qquad (17)
+$$
+
+- (식 17)을 얻기 위해 weight truncation 과 bias correction을 적용한다면
+
+
+$$
+Q^\pi (x_t,a_t) = \mathbb{E}_{x_{t+1} a_{t+1}} \left[ r_t + \gamma \rho_{t+1} Q^{\pi} (x_{t+1}, a_{t+1}) + \gamma \underset {a \sim \pi} {\mathbb{E}} \left( \left[ {{\rho_{t+1}(a)-c} \over{ \rho_{t+1}}(a) }\right]_+ Q^{\pi} (x_{t+1},a) \right)\right] \qquad(18)
+$$
+
+- (식 18) 에서 $Q^\pi$ 를 recursively 하게 expanding 함으로써  $Q^\pi (x,a)$ 는 다음과 같다.
+  $$
+  Q^\pi (x,a) = \mathbb{E}_{\mu} \left[ \sum_{t \ge 0 } \gamma^t \left( \prod_{i=1}^t \bar{\rho}_i\right) \left( r_t + \gamma \underset{b \sim \pi}{\mathbb{E}} \left( \left[ {{\rho_{t+1}(b)-c} \over {\rho_{t+1}(b)}}\right]_+ Q^\pi(x_{t+1} , b)\right) \right)\right] \qquad \qquad (19)
+  $$
+   
+
+- expectation $\mathbb{E}_\mu$ 는 $\mu$ 로 generate 한 actions을 취하는  $x$ 에서 시작하는 trajectories에 취한다. 
+- $Q^\pi$ 를 사용할 수 없을 때, current estimate $Q$ 로 대체한다. 
+
+
+$$
+\mathcal{B}Q (x,a) = \mathbb{E}_{\mu} \left[ \sum_{t \ge 0 } \gamma^t \left( \prod_{i=1}^t \bar{\rho}_i\right) \left( r_t + \gamma \underset{b \sim \pi}{\mathbb{E}} \left( \left[ {{\rho_{t+1}(b)-c} \over {\rho_{t+1}(b)}}\right]_+ Q(x_{t+1} , b)\right) \right)\right] \qquad \qquad (20)
+$$
+
+
+- 다음 명제는 $\mathcal{B}$ 이 unique fiexe point $Q^{\pi}$ 로 contraction operator 라는 것을 보여준다.
+
+
+
+**Proposition 1**. The operator B is a contraction operator such that $||\mathcal{B}Q − Q^\pi||_{\infty} ≤ \gamma ||Q − Q^\pi||_\infty$ and $\mathcal{B}$ is equivalent to Retrace.
+
+(Appendix C)
+
+
+
+- Finally, $\mathcal{B}$ , and therefore Retrace, generalizes both the Bellman operator $\mathcal{T}^\pi $ and importance sampling.
+- Specifically, when $c = 0$,  $\mathcal{B} = \mathcal{T}^\pi $ and when $c = \infty$, $\mathcal{B}$  recovers importance sampling(Appendix C).
+
+
+
+### Concluding Remarks
+
+- continuous 과 discrete action spaces로 확장한 **a stable off-policy actor critic** 소개
+
+- 다음 기법 사용
+
+  - **truncated importance sampling with bias correction**
+  - **stochastic dueling network architectures**
+  - **a new trust region policy optimization method**
+
+  
