@@ -5,7 +5,7 @@
 - 목적
   - stable
   - sample efficient
-    
+  
 - 논문에서 제안한 여러가지 방법들
   - **truncated importance sampling with bias correction**
   - **stochastic dueling network architectures**
@@ -29,7 +29,7 @@ $A^\pi (x_t,a_t) = Q^\pi (x_t,a_t)-V^\pi (x_t) \qquad \qquad \qquad \mathbb{E}_{
 
 
 
-$g = \mathbb{E}_{x_0:\infty, a_0:\infty} [ \sum_{t \ge 0} A^\pi(x_t,a_t) \bigtriangledown_\theta (a_t|x_t)] \qquad \qquad (1)$
+$g = \mathbb{E}_{x_0:\infty, a_0:\infty} [ \sum_{t \ge 0} A^\pi(x_t,a_t) \bigtriangledown_\theta log \pi_\theta (a_t|x_t)] \qquad \qquad (1)$
 
 
 
@@ -69,8 +69,7 @@ $$
 
 
 
-**marginal value functions over the limiting distribution ** of the process to yield the following approximation of the gradient:
-
+gradient를 approxmiation 하기 위해 **marginal value functions over the limiting distribution ** 사용해서 해결.
 
 $$
 g^{\text{marg}} = \mathbb{E}_{x_t \sim \beta, a_t \sim \mu}[\rho_t \bigtriangledown_\theta log \pi_\theta (x_t|x_t)Q^\pi (x_t,a_t)] \qquad \qquad \qquad (4)
@@ -79,10 +78,18 @@ limiting distribution $ \beta(x) = lim_{t \rarr \infty} p(x_t = x|x_0, \mu)$ wit
 
 
 
+극한분포는 <u>이산 또는 연속 시간 확률과정에서 시간이 무한대로 갈 때, 확률과정의 분포가 일정한 분포를 가지는 경우 이를 주어진 확률과정의 극한분포라고 한다.</u>
+
+
+
 여기서 중요한 점  두가지.
 
-1. $Q^u$ 대신에 $Q^\pi$. 따라서 $Q^\pi$ 를 추정해야 한다.
+1. $Q^u$ 대신에 $Q^\pi$ 를 사용했다.  따라서 $Q^\pi$ 를 추정해야 한다.
 2. importance weight의 product 가 없고 marginal importance weight $\rho_t$ 를 추정할 필요가 있다.
+
+
+
+Off-Policy Actor-Critic 논문에서는 $R^\lambda_t = r_t + (1-\lambda) \gamma V(x_{t+1}) + \lambda \gamma \rho_{t+1}R^\lambda_{t+1}$ 라는 재귀식을 통해 $Q^\pi$ 를 계산하는데 <u>$\rho_t$ 를 계속 곱해주기 때문에 학습이 불안정해 줄 수 있다.</u> 
 
 
 
@@ -90,7 +97,7 @@ limiting distribution $ \beta(x) = lim_{t \rarr \infty} p(x_t = x|x_0, \mu)$ wit
 
 
 
-- 이 논문에서는 Retrace(Munos et al., 2016) 방법을 사용해서 $Q^\pi {x_t, a_t}$ 를 추정한다.
+- 이 논문에서는 Retrace(Munos et al., 2016 [Safe and Efficient Off-Policy Reinforcement Learning](https://arxiv.org/abs/1606.02647)) 방법을 사용해서 $Q^\pi {x_t, a_t}$ 를 추정한다. ( $\rho$ 대신에 $\bar{\rho}$ 를 쓰는 것만으로도 variance가 낮아진다고 한다.)
 
 
 $$
@@ -98,20 +105,20 @@ Q^{\text{ret}} (x_t,a_t) = r-t + \gamma \bar{\rho}_{t+1} [ Q^{\text{ret}}(x_{t+1
 $$
 
 
-$\bar{\rho}_t$ 는 truncated importance weight 라 한다. $\bar{\rho}_t = min \left\{c,\rho_t \right\}$
+$\bar{\rho}_t$ 는 **truncated importance weight** 라 한다. $\bar{\rho}_t = min \left\{c,\rho_t \right\}$
 
 $Q$ 는 $Q^\pi$ 의 current value estimate 고 $V(x) = \mathbb{E}_{a \sim \pi} Q(x,a)$ 
 
 
 
-- **Retrace** is an **off-policy, return-based algorithm** which has **low variance** and is proven to **converge (in the tabular case) to the value function of the target policy for any behavior policy**, see Munos et al. (2016)
+- **Retrace**는 **low variance를 갖고 수렴이 보장된** **off-policy, return-based algorithm** 이다.
 
 - $Q$ 를 계산 하기 위해  discrete action space인 경우 **"two heades"를 갖는 convolutional neural network** 적용했다. ( $Q_{\theta_v} (x_t, a_t)$ 와 $\pi_\theta (a_t|x_t)$ 를 동시에 추정하기 위해 ) 
-- **As Retrace uses multistep returns**, it can significantly **reduce bias** in the estimation of the policy gradient
+- Retrace 는 multistep returns를 사용하기 때문에 ,  **bias를 줄인다**. 
 
 
 
-- critic $Q_{\theta_v} (x_t, a_t)$ 를 학습하기 위해 $Q^{\text{ret}}(x_t,a_t)$ 를 target으로 mean squard error loss를 사용했고 parameter $\theta_v$ 를 업데이트 하기 위해 다음가 같은 standard gradient를 사용했다.
+- critic $Q_{\theta_v} (x_t, a_t)$ 를 학습하기 위해 $Q^{\text{ret}}(x_t,a_t)$ 를 target으로 MSE 를 사용했고 parameter $\theta_v$ 를 업데이트 하기 위해 다음과 같은 standard gradient를 사용했다.
   $$
   \left( Q^{\text{ret}}(x_t,a_t) - Q_{\theta_v} (x_t, a_t)\right ) \bigtriangledown_{\theta_v} Q_{\theta_v} (x_t,a_t) \qquad \qquad \qquad (6)
   $$
@@ -128,15 +135,22 @@ $Q$ 는 $Q^\pi$ 의 current value estimate 고 $V(x) = \mathbb{E}_{a \sim \pi} Q
 
 
 
-- (식 4)에서 marginal importance weight는  커질 수 있어서, instability를 야기한다.
-- hight variance에 대해 safe-guard를 하기 importance weight를 truncate하고 다음과 같이 $g^{\text{marg}}$ 를 분해함으로써 correction term을 도입한다.
+- (식 4)에서 marginal importance weight는  커질 수 있어서, instability를 야기한다. 즉 식 (3)에서 식 (4)로 넘어오며 importance weight에 대한 곱셉항을 제거했지만, $\rho_t$ 가 **unbounded라는 사실은 변함이 없기 때문에 여전히 학습이 불안정해질 수 있는 요소**가 남아 있다.
+
+- hight variance에 대해 safe-guard를 하기위해 
+
+  - importance weight를 truncate하고 다음과 같이 $g^{\text{marg}}$ 를 correction term을 도입해서 나눠준다.
+
+  
 
 $$
 g^{\text{marg}} = \mathbb{E}_{x_t , a_t}[\rho_t \bigtriangledown_\theta log \pi_\theta (x_t|x_t)Q^\pi (x_t,a_t)] \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad\qquad \qquad \qquad \qquad \qquad\\
 = \mathbb{E}_{x_t} \left [ \mathbb{E}_{a_t} [ \bar{\rho}_t \bigtriangledown_\theta log \pi_\theta (x_t|x_t)Q^\pi (x_t,a_t)] + \mathbb{E}_{a \sim \pi} \left( \left[ {\rho_t(a)-c} \over {\rho_t(a)}\right]_+ \bigtriangledown_\theta log \pi_\theta (x_t|x_t)Q^\pi (x_t,a)\right) \right] \qquad (7)
 $$
 
-- (수식 7)의 앞의 부분은 the importance weight 를 clipping 하여 gradient estimate 의 variance가 bound되게 한다.
+
+
+- (수식 7)의 앞의 부분은 the **importance weight 를 clipping** 하여 gradient estimate 의 variance가 bound되게 한다.
 - (수식 7)의 뒷 부분 correction term은 $\rho_t (a) > c$ 일 때 active된다.
 
 
@@ -146,6 +160,11 @@ corret term 의 $Q^\pi (x_t,a)$ 은 neural network approximation $Q_{\theta_v} (
 
 
 **Truncation with bias correction trick**
+
+
+
+- variance를 줄여 주기 위해 advantage 사용
+
 $$
 \bar{g}^{\text{marg}} = \mathbb{E}_{x_t} \left [ \mathbb{E}_{a_t} [ \bar{\rho}_t \bigtriangledown_\theta log \pi_\theta (x_t|x_t)Q^{\text{ret}} (x_t,a_t)] + \mathbb{E}_{a \sim \pi} \left( \left[ {\rho_t(a)-c} \over {\rho_t(a)}\right]_+ \bigtriangledown_\theta log \pi_\theta (x_t|x_t)Q_{\theta_v} (x_t,a)\right) \right] \quad (8)
 $$
@@ -185,7 +204,9 @@ $$
 
 - policy network를 distribution $f$ 와 이 distribution의 statistics $\phi _\theta (x)$ 를 generate 하는 deep neural network 로 나눈다.  즉  $f$ 가 주어지면 policy는 $\phi_\theta : \pi(\cdot |x) = f( \cdot | \phi_\theta (x))$ 에 의해 characterized 된다. 
   - 예) $f$ 는 statistics로 probability vector $\phi_\theta(x)$ 를 갖는  categorical distribution으로 선택할 수 있다.
-- $\theta : \theta_a \larr \alpha \theta_a + (1-\alpha) \theta$
+    
+- $\theta : \theta_a \larr \alpha \theta_a + (1-\alpha) \theta$ 
+  
 
 
 $$
@@ -193,15 +214,20 @@ $$
 $$
 
 
+
+
 - averated policy network 가 있을 때, 제안된 trust region 업데이트는 두 단계를 거친다. 
 
   - 선형화된 KL divergence 제약식을 갖는 optimization 문제를 푼다
+    
+    
     $$
     \underset{z} {\text{minimize}} \quad  {1 \over 2} || \hat{g}^{\text{acer}} -z || ^2_2 \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad\\
     \text{subject to }\quad \bigtriangledown_{\phi_\theta (x_t)}D_{\text{KL}}[f( \cdot|\theta_a (x_t))||f(\cdot|\phi_\theta (x_t))]^Tz \le \delta \qquad (11)
-    $$
+$$
     
-
+    
+    
   - 제약식이 선현이기 때문에, overall optimization problem 은 simple quadratic programming problem으로 reduce 할 있는데, 이것의 solution은 KKT codition을 사용한 closed 형태로 쉽게 derived할 수 있다.
     $$
     z^* = \hat{g}_t^\text{acer} - \text{max} \left \{ 0 , {{k^T \hat{g}_t^\text{acer} - \delta} \over {||k||^2_2}} \right\}k \qquad \qquad (12)
@@ -238,7 +264,7 @@ $$
 
 #### Policy Evaluation
 
-- Retrace는 $Q_{\theta_v}$ 를 학습하기 위한 target를 제시하지만 $V_{\theta_v}$ 에 대해서는 target를 제시하지 않는다.
+- <u>Retrace는</u> $Q_{\theta_v}$ 를 학습하기 위한 target를 제시하지만 $V_{\theta_v}$ 에 대해서는 target를 제시하지 않는다.
 
 - $Q_{\theta_v}$ 가 주어졌을 때 $V_{\theta_v}$ 를 계산하기 위해서 importance sampling을 사용하지만 이 추정치는 **high variacne**를 갖는다. 
 
@@ -252,9 +278,16 @@ $$
     $$
     여기서 $n$ 은 parameter 다. 
 
+    
+  -  $\mathbb{E}_{a \sim \pi (\cdot|x_t)} \left[ \mathbb{E}_{u_1:n \sim \pi(\cdot|x_t)} \left( \tilde{Q}_{\theta_v} (x_t,a_t)\right) \right] = V_{\theta_v}(x_t)$
+
+     
+
   - $\tilde{Q}_{\theta_v}$ 를 학습함 으로써 $V^\pi$ 에 대해 학습할 수 있다. $Q^\pi$ 를   $\mathbb{E}_{u_1:n \sim \pi(\cdot|x_t)} \left( \tilde{Q}_{\theta_v} (x_t,a_t)\right) = Q^\pi (x_t, a_t)$ 과 같이 완벽하게 학습했다고 가정하면 $V_{\theta_v}(x_t) = \mathbb{E}_{a \sim \pi (\cdot|x_t)} \left[ \mathbb{E}_{u_1:n \sim \pi(\cdot|x_t)} \left( \tilde{Q}_{\theta_v} (x_t,a_t)\right) \right] = \mathbb{E}_{a \sim \pi (\cdot|x_t)} \left[ Q^\pi (x_t, a_t)\right] = V^\pi(x_t)$
 
-  - 그래서 $\tilde{Q}_{\theta_v} (x_t,a_t)$ 에 대한 taget은 $V_{\theta_v}$ 를 업데이트에 대해 error signal을 제공한다. 
+     
+
+  - 그래서 $\tilde{Q}_{\theta_v} (x_t,a_t)$ 에 대한 taget은 $V_{\theta_v}$ 를 업데이트에 할 때  오류가 같이 전파된다. 
 
     
 
@@ -279,7 +312,6 @@ $$
   + \underset{a \sim \pi} {\mathbb{E}} \left( \left[ {{\rho_t(a)-c} \over {\rho_t(a)}} \right]_+ (\tilde{Q}_{\theta_v}(x_t,a)-V_{\theta_v}(x_t)) \bigtriangledown_{\phi_\theta (x_t)} log f(a|\phi_\theta (x_t))\right) \right] \qquad \qquad (15)
   $$
   
-
 -  (식 15)에서는 $Q^{\text{ret}}$ 대신에 $Q^{\text{opc}}$ 를 사용했다.
 
 - $Q^{\text{opc}}$ 는 truncated importance ratio를 1로 대체 한다는 것을 제외하고는 Retrace 와 같다. (Appendix B 참조)
@@ -290,7 +322,6 @@ $$
   + \left[ {{\rho_t(a^{'}_t)-c} \over {\rho_t(a^{'}_t)}} \right]_+ (\tilde{Q}_{\theta_v}(x_t,a^{'}_t)-V_{\theta_v}(x_t)) \bigtriangledown_{\phi_\theta (x_t)} log f(a^{'}_t|\phi_\theta (x_t))\qquad \qquad (16)
   $$
   
-
 - $f$ 와 $\hat{g}^{\text{acer}}_t$ 가 주어 졌을 때 update를 완성하기 위해 "Discrete Actor Criti With Experience Replay - Efficient Trust Region Policy Opimization"에서 설명한 step을 따른다. 
 
 
@@ -340,8 +371,7 @@ $$
   $$
   Q^\pi (x,a) = \mathbb{E}_{\mu} \left[ \sum_{t \ge 0 } \gamma^t \left( \prod_{i=1}^t \bar{\rho}_i\right) \left( r_t + \gamma \underset{b \sim \pi}{\mathbb{E}} \left( \left[ {{\rho_{t+1}(b)-c} \over {\rho_{t+1}(b)}}\right]_+ Q^\pi(x_{t+1} , b)\right) \right)\right] \qquad \qquad (19)
   $$
-   
-
+  
 - expectation $\mathbb{E}_\mu$ 는 $\mu$ 로 generate 한 actions을 취하는  $x$ 에서 시작하는 trajectories에 취한다. 
 - $Q^\pi$ 를 사용할 수 없을 때, current estimate $Q$ 로 대체한다. 
 
