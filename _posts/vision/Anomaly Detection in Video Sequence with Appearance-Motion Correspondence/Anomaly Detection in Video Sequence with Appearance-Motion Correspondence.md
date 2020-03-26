@@ -124,7 +124,7 @@ $F_t$ : the ground truth optical flow estimated from two consecutive frames $I_t
 
 $\hat{F}_t$ : the output of our U-Net given $I_t$  
 
-this stream attempts to predict instant motions of objects appearing in the video.
+This stream attempts to predict instant motions of objects appearing in the video.
 
 
 
