@@ -34,7 +34,7 @@
   - common appearance spatial structure in normal events
 - Motion Decoder
   - To determine an association between each input pattern and its corresponding motion represented by an optical flow of 3 channels (xy displacements and magnitude).
-    
+  
 - The skip connections in U-Net.
   - Motion Decoder : for image translation since it directly transforms low-level features (e.g. edge, image patch) from original domains to the decoded ones.
 
@@ -78,21 +78,20 @@
     $$
     \mathcal{L}_{\text{int}}(I, \hat{I}) = ||I-\hat{I}||^2_2 \qquad \qquad \qquad \qquad  \qquad \qquad  \qquad \qquad (1)
     $$
-     
-
-  - A drawback of using only $l_2$ loss is the blur in the output:
+    
+- A drawback of using only $l_2$ loss is the blur in the output:
     $$
     \mathcal{L}_{\text{grad}} (I, \hat{I}) = sum_{d \in \{x,y\}} \left| \left| |g_d(I)| - |g_d(\hat{I})| \right| \right|_1 \qquad \qquad\ \qquad (2)
     $$
-     
-
     
-
-  $$
+  
+  
+  
+$$
   \mathcal{L}_{\text{appe}} (I, \hat{I}) = \mathcal{L}_{\text{int}} (I, \hat{I}) + \mathcal{L}_{\text{grad}} (I, \hat{I}) \qquad \qquad\ \qquad \qquad \qquad (3)
   $$
-
-  <div style="page-break-after: always; break-after: page;"></div>
+  
+<div style="page-break-after: always; break-after: page;"></div>
 
 ### Motion prediction U-Net
 
@@ -123,7 +122,9 @@ $$
 
 $F_t$ : the ground truth optical flow estimated from two consecutive frames $I_t$ and $I_{t+1}$ 
 
-$\hat{F}_t$ : the output of our U-Net given $I_t$  (프레임 하나로 optical flow 추정하는게 있나보지?)   
+$\hat{F}_t$ : the output of our U-Net given $I_t$  
+
+this stream attempts to predict instant motions of objects appearing in the video.
 
 
 
