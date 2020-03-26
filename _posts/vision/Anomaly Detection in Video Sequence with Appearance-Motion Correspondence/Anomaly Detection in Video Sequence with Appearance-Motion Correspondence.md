@@ -18,9 +18,126 @@
 
   - We design a CNN that combines a Conv-AE and a UNet, in which each stream has its own contribution for the task of detecting anomalous frames. The model can be trained end-to-end.
   - We integrate an Inception module modified from [48] right after the input layer to reduce the effect of network’s depth since this depth is considered as a hyper parameter that requires a careful selection.
-  - We propose a patch-based scheme estimating framelevel normality score that reduces the effect of noise which appears in the model outputs.
+  - We propose a patch-based scheme estimating frame level normality score that reduces the effect of noise which appears in the model outputs.
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+## Proposed Method
+
+![11](11.PNG)
 
 
+
+
+
+- Conv-AE
+  - common appearance spatial structure in normal events
+- Motion Decoder
+  - To determine an association between each input pattern and its corresponding motion represented by an optical flow of 3 channels (xy displacements and magnitude).
+    
+- The skip connections in U-Net.
+  - Motion Decoder : for image translation since it directly transforms low-level features (e.g. edge, image patch) from original domains to the decoded ones.
+
+
+
+- Not use any fully-connected layer
+  - 이론적으로는 해상도에 상관없음.
+  - 모델을 단순화 하기 위해 사이즈 input size 고정:  128 × 192 × 3
+  - 1:1.5 비율 사용 (?)
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+### Inception module
+
+
+
+- To let the model select its appropriate convolutional operations.
+- Remove the max pooling in this module since the input is a regular video frame instead of a collection of feature maps. 
+- filter sizes 1 × 1, 3 × 3, 5 × 5 and 7 × 7
+
+
+
+### Appearance convolutional autoencoder
+
+-  the detection of strange (abnormal) objects within input frames by learning common appearance templates in normal events.
+
+- Encoder
+
+  - convolution, batch-normalization (BatchNorm) and leakyReLU activation 
+  - The first block (right after the Inception module) does not contain BatchNorm layer as suggested in [17] for our U-Net task 
+  - Instead of using pooling layer to reduce the resolution of feature maps, we apply strided convolution
+    - Such parametric operation is expected to support the network finding an informative way to downsample the spatial resolution of feature maps as well as learning the further upsampling in decoding stage
+
+- Decoder
+
+  - A dropout layer (with pdrop = 0.3) is attached before the ReLU activation in each block as a regularization that reduces the risk of overfitting during the training stage
+
+- Loss
+
+  - $l_2$ distance between the input image $I$ and its reconstruction $\hat{I}$ : 
+    $$
+    \mathcal{L}_{\text{int}}(I, \hat{I}) = ||I-\hat{I}||^2_2 \qquad \qquad \qquad \qquad  \qquad \qquad  \qquad \qquad (1)
+    $$
+     
+
+  - A drawback of using only $l_2$ loss is the blur in the output:
+    $$
+    \mathcal{L}_{\text{grad}} (I, \hat{I}) = sum_{d \in \{x,y\}} \left| \left| |g_d(I)| - |g_d(\hat{I})| \right| \right|_1 \qquad \qquad\ \qquad (2)
+    $$
+     
+
+    
+
+  $$
+  \mathcal{L}_{\text{appe}} (I, \hat{I}) = \mathcal{L}_{\text{int}} (I, \hat{I}) + \mathcal{L}_{\text{grad}} (I, \hat{I}) \qquad \qquad\ \qquad \qquad \qquad (3)
+  $$
+
+  <div style="page-break-after: always; break-after: page;"></div>
+
+### Motion prediction U-Net
+
+Our UNet sub-network thus focuses on learning the association between such patterns and corresponding motions. 
+
+
+
+ground truth optical flow([retrained FlowNet2) 사용
+
+
+
+The decoder of our U-Net has the same structure as the Conv-AE except for the skip connections.
+
+
+
+- Loss
+  - $l_1$ distance
+    -  the FlowNet2 model is formed as a fusion of multiple networks providing optical flows from coarse (noisy) to fine (smooth), the result might thus contain noise or even amplify noisy regions during the smoothing procedure.
+    - because the selection of optical flow estimation is not limited to FlowNet2, the training ground truth obtained from other algorithms might therefore possibly have small patches of wrong and/or noisy motion measure
+
+
+
+
+$$
+\mathcal{L}_{\text{flow}}(F_t, \hat{F}_t) = ||F_t-\hat{F}_t||_1 \qquad \qquad \qquad \qquad  \qquad \qquad  \qquad \qquad (4)
+$$
+
+
+$F_t$ : the ground truth optical flow estimated from two consecutive frames $I_t$ and $I_{t+1}$ 
+
+$\hat{F}_t$ : the output of our U-Net given $I_t$  (프레임 하나로 optical flow 추정하는게 있나보지?)   
+
+
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+###  Additional motion-related objective function
+
+
+
+
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+###  Anomaly detection
 
 <div style="page-break-after: always; break-after: page;"></div>
 
@@ -31,9 +148,7 @@
 - Subway Entrance Gate and Exit Gate
 - Traffic-Belleview와 Traffic-Train
 
-
-
-![스크린샷 2020-03-25 오후 10.14.49](스크린샷 2020-03-25 오후 10.14.49.png)
+![1](1.png)
 
 
 
@@ -46,25 +161,25 @@
 
 ### CUHK Avenue and UCSD Ped2
 
+![2](2.png)
 
-
-![스크린샷 2020-03-25 오후 10.40.13](스크린샷 2020-03-25 오후 10.40.13.png)
-
-![스크린샷 2020-03-25 오후 10.41.13](스크린샷 2020-03-25 오후 10.41.13.png)
+![3](3.png)
 
 - 트럭은 처음 보는 객체이기 때문에 보행자의 패턴으로써 reconstruct 되었다.
 - 그래서 트럭의 predicted motion은 ground truth와 완전히 다르다.
 - 맨 오른쪽 자전거도 마찬가다.
 
+![4](4.png)
 
 
-![스크린샷 2020-03-25 오후 10.45.01](스크린샷 2020-03-25 오후 10.45.01.png)
 
 
 
 - 자전거는 처음 보는 객체이기 때문에 보행자와 배경과 비슷한 밝기로 표시 되었다.
 
-![스크린샷 2020-03-25 오후 10.49.08](스크린샷 2020-03-25 오후 10.49.08.png)
+  ![5](5.png)
+
+
 
 
 
@@ -85,9 +200,9 @@
     - 다른 사람을 피하기 위해 어색하게 걷는 사람
     - 갑자기 걷는 속도를 변경하는 경우
 
+![6](6.png)
 
 
-![스크린샷 2020-03-25 오후 11.00.33](스크린샷 2020-03-25 오후 11.00.33.png)
 
 
 
@@ -98,7 +213,11 @@
 
 #### false alarm과 missed anomaly detection의 visualization
 
-![스크린샷 2020-03-25 오후 11.03.32](스크린샷 2020-03-25 오후 11.03.32.png)
+
+
+![7](7.png)
+
+
 
 - movement stopping과 loitering에 대한 normality decision이 불안정 하다.
   -  (a)-(e)는 miss 했고 (f)-(h)는 잘 못 detect 했다.
@@ -134,13 +253,13 @@ Traffic-Traing
 - camera jitter에 따라 lighting condition이 심하게 변한다.
 - 사람의 움직임을 이상으로 간주
 
-
-
-![스크린샷 2020-03-25 오후 11.33.37](스크린샷 2020-03-25 오후 11.33.37.png)
+![9](9.png)
 
 
 
-![스크린샷 2020-03-25 오후 11.27.27](스크린샷 2020-03-25 오후 11.27.27.png)
+![8](8.png)
+
+
 
 - 움직임이 매우 nosy 하고 가운데 승객을 error map에서는 놓쳤다. 
 
@@ -150,9 +269,11 @@ Traffic-Traing
 - 구체적으로는 Structure Similarity Idex(SSIM)[50]를 사용하여 입력 프레임과  appearance stream이 만드는 reconstruction의 유사성을 계산했다. MSE나 PSNR과 같은 다른 일반적인 측정과 비교하여 SSIM은 픽셀별 비교가 적절하지 않은 지터 영상에서 잘 작동할 수 있다.
 - 표 3은 이러한 변경이 특히 열차 데이터 세트를 통해 이상 징후 감지 결과를 개선했음을 보여준다. ROC 및 PR 곡선, 일부 형상 지도의 시각화 및 각 단일 스트림의 평가 결과를 포함한 자세한 내용은 보충 자료에서 제공된다.
 
+![10](10.png)
 
 
-![스크린샷 2020-03-25 오후 11.34.33](스크린샷 2020-03-25 오후 11.34.33.png)
+
+
 
 - optical flow estimator의 영향은 두개의 차가 big blob로 결합된 Figure 6(c)에 잘 설명되어 있다. 이 잘못된 추정으로 인해 다른 방향으로 달리는 3대의 차는 정확하게 찾아 냈음에도 불구하고 error map에 큰 영향을 미쳤다.
   - 다른 optical flow 를 선택하거나 FlowNet2를 좀 더 적절한 데이터 셋으로 pretrain 시킴으로써 개선할 수 있을 것이다.
