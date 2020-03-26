@@ -78,19 +78,19 @@
     $$
     \mathcal{L}_{\text{int}}(I, \hat{I}) = ||I-\hat{I}||^2_2 \qquad \qquad \qquad \qquad  \qquad \qquad  \qquad \qquad (1)
     $$
-    
+  
 - A drawback of using only $l_2$ loss is the blur in the output:
     $$
     \mathcal{L}_{\text{grad}} (I, \hat{I}) = sum_{d \in \{x,y\}} \left| \left| |g_d(I)| - |g_d(\hat{I})| \right| \right|_1 \qquad \qquad\ \qquad (2)
     $$
     
+
   
-  
-  
+
 $$
   \mathcal{L}_{\text{appe}} (I, \hat{I}) = \mathcal{L}_{\text{int}} (I, \hat{I}) + \mathcal{L}_{\text{grad}} (I, \hat{I}) \qquad \qquad\ \qquad \qquad \qquad (3)
-  $$
-  
+$$
+
 <div style="page-break-after: always; break-after: page;"></div>
 
 ### Motion prediction U-Net
@@ -132,13 +132,126 @@ This stream attempts to predict instant motions of objects appearing in the vide
 
 ###  Additional motion-related objective function
 
+![12](12.png)
+
+Beside the distance-based loss $L_\text{flow}$, we also add another loss that penalizes the underlying distribution of predicted optical flow to be similar to ground truth.
 
 
 
+Inspired by [32] where using a GAN loss is reported to provide better results compared with employing only distance-based ones, we apply such strategy as an additional objective function.
+
+
+
+Notice that the discriminator is not employed in the inference stage.
+
+
+
+our model follows the strategy of typical conditional GAN (cGAN) where both the ground truth
+
+video frame and its corresponding optical flow are fed into the discriminator
+
+
+
+- First, the cGAN theoretically avoids the problem of mode collapse in vanilla GAN since ground truth information (i.e. labels, real samples) is fed into the discriminator. The model is thus expected to efficiently learn the distribution of training samples. 
+- Second, cGAN is appropriate for a CNN of image translation as demonstrated in [17].
+
+
+
+Finally, the adversarial loss is directly computed on the last layer containing activated feature maps in the discriminator.
+
+However, we strictly constrain patches at feature-level so that each feature map must attempt
+
+to provide a classification result. 
+
+This design is inspired from the study [4] demonstrating that each convolutional
+
+channel attends to particular semantic patterns
+
+Given an input video frame $I$ and its associated optical flow $F$ obtained from FlowNet2,
+
+the proposed network in Figure 1 (the generator denoted as $\mathcal{G}$) produced a reconstructed frame  $\hat{I}$ and a predicted optical flow $\hat{F}$ , while the discriminator $\mathcal{D}$ estimates a probability that optical flow associated to $I$ is ground truth $F$ . 
+
+
+$$
+\mathcal{L}_\mathcal{D}(I,F, \hat{F}) = { 1 \over 2} \sum_{x,y,c} -log\ \mathcal{D}(I,F)_{x,y,c} + { 1 \over 2} \sum_{x,y,c} -log\ [1-\mathcal{D}(I,\hat{F})_{x,yc}] \qquad \qquad \qquad (5)
+$$
+
+
+
+
+
+$$
+\mathcal{L}_{\mathcal{G}} (I,\hat{I},F,\hat{F}) = \lambda_{\mathcal{G}} \sum_{x,y,c} -log\ \mathcal{D}(I, \hat{F})_{x,y,c} \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \\
++ \lambda_a \mathcal{L}_{\text{appe}}(I, \hat{I}) + \lambda_f \mathcal{L}_\text{flow}(F,\hat{F}) \qquad \qquad \qquad(6)
+$$
+
+
+
+
+$\lambda_\mathcal{G}$ : 0.25
+
+$\lambda_a$ : 1
+
+$\lambda_f$ : 2
 
 <div style="page-break-after: always; break-after: page;"></div>
 
 ###  Anomaly detection
+
+
+
+ CNN 방법에서 사용하는 2가지 common score
+
+- $L_p$ distance
+- Peak Signal To Noise Ratio (PSNR)
+
+
+
+another score estimation scheme considering only a small patch instead of the entire frame.
+
+
+
+- define partial scores individually estimated on the two model streams sharing the same patch position
+
+
+$$
+\begin{cases}
+S_I(P) = {1 \over {|P|}} \sum_{i,j \in P} (I_{i,j} - \hat{I}_{i,j})^2   \\
+S_F(p) = {1 \over {|P|}} \sum_{i,j \in P} (F_{i,j} - \hat{F}_{i,j})^2 
+\end{cases} \qquad \qquad \qquad (7)
+$$
+$P$ : 이미지 패치 (16x16)
+
+$|P|$ : 이미지 패치의 픽셀 수
+
+
+$$
+S= log[w_FS_F(\tilde{P})] + \lambda_S log[w_IS_I(\tilde{P})] \qquad \qquad \qquad (8)
+$$
+$w_F$ , $w_I$ : the weights calculated according to the training data 
+
+
+$$
+\begin{cases}
+w_F = \left[ {1 \over n} \sum_{i=1} ^n S_{F_i}(\tilde{P}_i) \right]^{-1}   \\
+w_I = \left[ {1 \over n} \sum_{i=1} ^n S_{I_i}(\tilde{P}_i) \right]^{-1} 
+\end{cases} \qquad \qquad \qquad (10)
+$$
+
+
+$\lambda_S$ :  control the contribution of partial scores to the summation (0.2)
+
+$\tilde{P}$ :  the patch providing the highest value of $S_F$ in the considering frame
+$$
+\tilde{P} \leftarrow \underset{\text{P slides on frame}}{\text{argmax}} S_F(P) \qquad \qquad \qquad (9)
+$$
+
+
+a normalization on frame-level scores in each evaluated video
+$$
+\tilde{S}_t = {S_t \over \text{max}(S_1..m)} \qquad \qquad \qquad (11)
+$$
+$t$ : the frame index in a video containing $m$ frames
 
 <div style="page-break-after: always; break-after: page;"></div>
 
