@@ -1,24 +1,150 @@
+
+
 # Anomaly Detection in Video Sequence with Appearance-Motion Correspondence
 
 
 
-## Abstract
+참고: 
 
--  Learning a correspondence between **common object appearances** (e.g. pedestrian, background, tree, etc.) and **their associated motions**.
-- A combination of a reconstruction network and an image translation model that share the same encoder.
-  - **a reconstruction network** :  the most significant structures that appear in video frames
-  - **an image translation model**  :  associate motion templates to such structures.
-- The training stage is performed using **only videos of normal events** and the model is then capable to estimate frame-level scores for an unknown input.
+- [[Video Surveillance] 영상 감시 분야에서 이상 탐지(Anomaly Detection)](https://eehoeskrap.tistory.com/403) 
+- [Anomaly Detection 개요： (1) 이상치 탐지 분야에 대한 소개 및 주요 문제와 핵심 용어, 산업 현장 적용 사례 정리](http://research.sualab.com/introduction/review/2020/01/30/anomaly-detection-overview-1.html)
+- [awesome anomaly detection](https://github.com/hoya012/awesome-anomaly-detection)
+
+
+
+## Anomaly Detection
+
+### Supervised Anomaly Detection
+
+- 정상 데이터들보다 비정상 데이터들의 발생 빈도가 현저히 낮기 때문에 **클래스 불균형(Class-Imbalance) 문제**
+
+
+
+### Semi-supervised (one-class) Anomaly Detection
+
+- 정상 데이터들을 내포하는 discriminative boundary 를 설정하고, 이 boundary 를 최대한 좁혀 boundary 밖에 있는 데이터들을 모두 비정상으로 간주
+
+  
+
+![14](14.png)
+
+
+
+### Unsupervised Anomaly Detection
+
+- 라벨링이 필요 없다.
+
+![13](13.png)
+
+
 
 <div style="page-break-after: always; break-after: page;"></div>
 
-## Introduction
+## 이상 행위 탐지
 
-- ### Contribution
 
-  - We design a CNN that combines a Conv-AE and a UNet, in which each stream has its own contribution for the task of detecting anomalous frames. The model can be trained end-to-end.
-  - We integrate an Inception module modified from [48] right after the input layer to reduce the effect of network’s depth since this depth is considered as a hyper parameter that requires a careful selection.
-  - We propose a patch-based scheme estimating frame level normality score that reduces the effect of noise which appears in the model outputs.
+
+### 스켈레톤(Skeleton) + 오토인코더를 이용한 이상 행위 탐지
+
+[Learning Regularity in Skeleton Trajectories for Anomaly Detection in Videos](https://arxiv.org/abs/1903.03295)
+
+
+
+![15](15.png)
+
+
+
+* By learning regular spatio-temporal patterns of skeleton features.
+* Skeletal movement를 두개의 sub-component로 분리: global body movement와 local body posture.
+
+
+
+![16](16.png)
+
+
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+### 비디오 정보 + 오토인코더를 이용한 이상 행위 탐지
+
+[Motion-Aware Feature for Improved Video Anomaly Detection](https://arxiv.org/abs/1907.10211)
+
+
+
+- 모션 정보는 비디오에서 이상 행위를 탐지하기 위한 핵심이기 때문에 모션 인식 기능 (motion-aware feature)를 학습하기 위해  a temporal augmented network 제안.
+- **Attention block**을 사용해서 Multiple Instance Learning (MIL) ranking model에 통합
+
+
+
+![17](17.png)
+
+![18](18.png)
+
+
+
+
+
+![19](19.png)
+
+
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+### 종합 정보(객체 탐지 + 오토인코더 + time-stamp 등)를 이용한 이상 탐지
+
+
+
+[Challenges in Time-Stamp Aware Anomaly Detection in Traffic Videos](https://arxiv.org/abs/1906.04574)
+
+- 교통 상황에서 Time-stamp를 인식하여 이상 상황을 탐지하는 것은 지능형 교통 시스템에서 필수적인 작업
+- 비디오에서 이상 탐지는 비정상 이벤트 발생이 드물고, 다른 유형의 이상 동작이 일관되지 않고 정상 및 비정상 시나리오에 대해 사용 가능한 데이터가 매우 불균형하기 때문에 까다로운 문제
+- 교통 상황에서 비정상 상황은 시간, 장소 및 환경에 따라 달라질 수 있다
+  - 도로에서 자동차를 운전하는 것은 정상이지만, 고속도로에서 정체된 자동차는 이상
+  - 주차장에서 움직이지 않는 자동차는 정상행동
+  - 신호등 근처에서 정차된 차량은 신호가 빨간색 일 때는 정상이지만 녹색 일 때는 비정상
+
+
+
+![20](20.png)
+
+
+
+- **적절한 특징 추출, 정상 교통 상황 정의, 정상 및 비정상 데이터의 클래스 불균형 분포 처리, 비정상 동작의 변화 해결, 비정상적인 이벤트의 발생 감소, 환경 변화, 카메라 움직임** 등이 앞으로 해결해야하는 과제
+
+  
+
+- 논문에서는 이상 상황을 탐지하기 위해 비디오의 모션 패턴을 학습하는 3단계의 파이프라인을 제안
+
+  - 움직임이 없는 객체를 식별하기 위해 최근 프레임으로부터 배경 추출
+
+    - 배경 이미지는 프레임 내에서 정상 및 비정상 동작을 localization 하는데 사용됨
+
+  - 추정된 배경에서 관심 대상을 검출
+
+    - 관심 대상: 차량 및 신호등이 포함될 수 있음 $\rightarrow$ 종합적인 상황 인식을 위해서
+
+  - time-stamp aware anomaly detection 알고리즘에 기초하여 교통 상황에서의 이상 탐지를 수행
+
+    
+
+    ![21](21.png)
+
+    
+
+    ![22](22.png)
+
+
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+## Abstract
+
+-  Video sruveillance에서 anomaly detection은 **가능한 이벤트가 많기 때문에** 어렵다. 
+-  이 논문에서는  **common object appearances** (e.g. pedestrian, background, tree, etc.) 와 **그것과 관련된 motions** 사의 관련성을 학습함으로써 해결했다.
+- 하나의 encoder를 공유하는 reconstruction network와 image translation 모델의 조합을 제안
+  - **a reconstruction network** :  비디오 프레임에서 가장 중요한 structure 
+  - **an image translation model**  : 그 structures와 관련된  motion template
+- 학습 단계에서는  **정상적인 이벤트 비디오만**  사용했고 **unknown input**의 frame-level score를 추정할 수 있다.
 
 <div style="page-break-after: always; break-after: page;"></div>
 
@@ -30,20 +156,15 @@
 
 
 
-- Conv-AE
-  - common appearance spatial structure in normal events
-- Motion Decoder
-  - To determine an association between each input pattern and its corresponding motion represented by an optical flow of 3 channels (xy displacements and magnitude).
-  
-- The skip connections in U-Net.
-  - Motion Decoder : for image translation since it directly transforms low-level features (e.g. edge, image patch) from original domains to the decoded ones.
+- **Conv-AE**
+  - 정상적인 이벤트에서의 common appearance spatial structure.
+- **Motion Decoder**
+  - 입력 패턴과  그것에 해당되는 모션(opticalflow로 표현)사이의  관계를 결정
+
+- **The skip connections in U-Net.**
+  - Motion Decoder :  **low-level features** (e.g. edge, image patch) 를 유지 하기 위해
 
 
-
-- Not use any fully-connected layer
-  - 이론적으로는 해상도에 상관없음.
-  - 모델을 단순화 하기 위해 사이즈 input size 고정:  128 × 192 × 3
-  - 1:1.5 비율 사용 (?)
 
 <div style="page-break-after: always; break-after: page;"></div>
 
@@ -51,68 +172,71 @@
 
 
 
-- To let the model select its appropriate convolutional operations.
-- Remove the max pooling in this module since the input is a regular video frame instead of a collection of feature maps. 
-- filter sizes 1 × 1, 3 × 3, 5 × 5 and 7 × 7
+- 모델이 적절한 convolutional operation을 선택하기 위해.
+- max pooling 사용하지 않음
+  - 입력 영상이 feature map의 집합이 아니라 regular video frame이기 때문. 
+- filter sizes: 1 × 1, 3 × 3, 5 × 5, 7 × 7
 
 
 
 ### Appearance convolutional autoencoder
 
--  the detection of strange (abnormal) objects within input frames by learning common appearance templates in normal events.
+-  정상 이벤트에서 common appearance template를 학습함으로써 이상 객체 감지 
 
-- Encoder
+- **Encoder**
 
-  - convolution, batch-normalization (BatchNorm) and leakyReLU activation 
-  - The first block (right after the Inception module) does not contain BatchNorm layer as suggested in [17] for our U-Net task 
-  - Instead of using pooling layer to reduce the resolution of feature maps, we apply strided convolution
-    - Such parametric operation is expected to support the network finding an informative way to downsample the spatial resolution of feature maps as well as learning the further upsampling in decoding stage
+  - convolution, <u>batch-normalization (BatchNorm)</u> , <u>leakyReLU activation</u> 
+
+  - The first block (right after the Inception module)은  BatchNorm 사용하지 않음
+
+  - 해상도를 줄이기 위해 pooling layer를 사용하는 것 대신에 strided convolution 사용
+
+    
 
 - Decoder
 
-  - A dropout layer (with pdrop = 0.3) is attached before the ReLU activation in each block as a regularization that reduces the risk of overfitting during the training stage
+  -  ReLU 다음에  dropout layer (with pdrop = 0.3) 적용
 
 - Loss
 
-  - $l_2$ distance between the input image $I$ and its reconstruction $\hat{I}$ : 
+  - input image $I$ 와  reconstruction $\hat{I}$ 사이의 $l_2$ distance  : 
+    
+  - 
     $$
-    \mathcal{L}_{\text{int}}(I, \hat{I}) = ||I-\hat{I}||^2_2 \qquad \qquad \qquad \qquad  \qquad \qquad  \qquad \qquad (1)
+    \mathcal{L}_{\text{int}}(I, \hat{I}) = ||I-\hat{I}||^2_2 \qquad \qquad \qquad  \qquad \qquad (1)
     $$
   
-- A drawback of using only $l_2$ loss is the blur in the output:
+  
+  
+- $l_2$ loss 만 사용하면 output에 blur가 되는 단점이 있어 input이미지의 gradient loss 추가 :
+    
+    
     $$
-    \mathcal{L}_{\text{grad}} (I, \hat{I}) = sum_{d \in \{x,y\}} \left| \left| |g_d(I)| - |g_d(\hat{I})| \right| \right|_1 \qquad \qquad\ \qquad (2)
+    \mathcal{L}_{\text{grad}} (I, \hat{I}) = sum_{d \in \{x,y\}} \left| \left| |g_d(I)| - |g_d(\hat{I})| \right| \right|_1 \qquad  (2)
     $$
     
 
   
 
 $$
-  \mathcal{L}_{\text{appe}} (I, \hat{I}) = \mathcal{L}_{\text{int}} (I, \hat{I}) + \mathcal{L}_{\text{grad}} (I, \hat{I}) \qquad \qquad\ \qquad \qquad \qquad (3)
+\mathcal{L}_{\text{appe}} (I, \hat{I}) = \mathcal{L}_{\text{int}} (I, \hat{I}) + \mathcal{L}_{\text{grad}} (I, \hat{I}) \qquad \qquad\ \qquad (3)
 $$
 
 <div style="page-break-after: always; break-after: page;"></div>
 
 ### Motion prediction U-Net
 
-Our UNet sub-network thus focuses on learning the association between such patterns and corresponding motions. 
 
 
-
-ground truth optical flow([retrained FlowNet2) 사용
-
-
-
-The decoder of our U-Net has the same structure as the Conv-AE except for the skip connections.
+- ground truth로 optical flow([retrained FlowNet2) 사용
+- the skip connection 사용
 
 
 
 - Loss
   - $l_1$ distance
-    -  the FlowNet2 model is formed as a fusion of multiple networks providing optical flows from coarse (noisy) to fine (smooth), the result might thus contain noise or even amplify noisy regions during the smoothing procedure.
-    - because the selection of optical flow estimation is not limited to FlowNet2, the training ground truth obtained from other algorithms might therefore possibly have small patches of wrong and/or noisy motion measure
 
-
+    
 
 
 $$
@@ -122,9 +246,7 @@ $$
 
 $F_t$ : the ground truth optical flow estimated from two consecutive frames $I_t$ and $I_{t+1}$ 
 
-$\hat{F}_t$ : the output of our U-Net given $I_t$  
-
-This stream attempts to predict instant motions of objects appearing in the video.
+$\hat{F}_t$ : the output of our U-Net given $I_t$   
 
 
 
@@ -134,42 +256,25 @@ This stream attempts to predict instant motions of objects appearing in the vide
 
 ![12](12.png)
 
-Beside the distance-based loss $L_\text{flow}$, we also add another loss that penalizes the underlying distribution of predicted optical flow to be similar to ground truth.
+
+
+- 예측된 optical flow 기본 분포가 groud truth에 더 가까워지도록 distance-based loss $L_\text{flow}$ 외에 추가적으로 GAN Loss 적용
 
 
 
-Inspired by [32] where using a GAN loss is reported to provide better results compared with employing only distance-based ones, we apply such strategy as an additional objective function.
+$I$ :  입력 비디오
+
+ $F$ : FlowNet2로 얻은 입력 비디오의 optical flow
+
+ $\mathcal{G}$ : generator. 제안된 네트워크
+
+ $\hat{I}$ : a reconstructed frame 
+
+ $\hat{F}$ : a predicted optical flow
+
+$\mathcal{D}$ : discriminator 
 
 
-
-Notice that the discriminator is not employed in the inference stage.
-
-
-
-our model follows the strategy of typical conditional GAN (cGAN) where both the ground truth
-
-video frame and its corresponding optical flow are fed into the discriminator
-
-
-
-- First, the cGAN theoretically avoids the problem of mode collapse in vanilla GAN since ground truth information (i.e. labels, real samples) is fed into the discriminator. The model is thus expected to efficiently learn the distribution of training samples. 
-- Second, cGAN is appropriate for a CNN of image translation as demonstrated in [17].
-
-
-
-Finally, the adversarial loss is directly computed on the last layer containing activated feature maps in the discriminator.
-
-However, we strictly constrain patches at feature-level so that each feature map must attempt
-
-to provide a classification result. 
-
-This design is inspired from the study [4] demonstrating that each convolutional
-
-channel attends to particular semantic patterns
-
-Given an input video frame $I$ and its associated optical flow $F$ obtained from FlowNet2,
-
-the proposed network in Figure 1 (the generator denoted as $\mathcal{G}$) produced a reconstructed frame  $\hat{I}$ and a predicted optical flow $\hat{F}$ , while the discriminator $\mathcal{D}$ estimates a probability that optical flow associated to $I$ is ground truth $F$ . 
 
 
 $$
@@ -194,6 +299,8 @@ $\lambda_a$ : 1
 
 $\lambda_f$ : 2
 
+
+
 <div style="page-break-after: always; break-after: page;"></div>
 
 ###  Anomaly detection
@@ -207,11 +314,6 @@ $\lambda_f$ : 2
 
 
 
-another score estimation scheme considering only a small patch instead of the entire frame.
-
-
-
-- define partial scores individually estimated on the two model streams sharing the same patch position
 
 
 $$
@@ -225,10 +327,14 @@ $P$ : 이미지 패치 (16x16)
 $|P|$ : 이미지 패치의 픽셀 수
 
 
+
 $$
 S= log[w_FS_F(\tilde{P})] + \lambda_S log[w_IS_I(\tilde{P})] \qquad \qquad \qquad (8)
 $$
 $w_F$ , $w_I$ : the weights calculated according to the training data 
+
+
+
 
 
 $$
@@ -242,12 +348,15 @@ $$
 $\lambda_S$ :  control the contribution of partial scores to the summation (0.2)
 
 $\tilde{P}$ :  the patch providing the highest value of $S_F$ in the considering frame
+
+
 $$
 \tilde{P} \leftarrow \underset{\text{P slides on frame}}{\text{argmax}} S_F(P) \qquad \qquad \qquad (9)
 $$
 
-
 a normalization on frame-level scores in each evaluated video
+
+
 $$
 \tilde{S}_t = {S_t \over \text{max}(S_1..m)} \qquad \qquad \qquad (11)
 $$
@@ -280,17 +389,23 @@ $t$ : the frame index in a video containing $m$ frames
 ![3](3.png)
 
 - 트럭은 처음 보는 객체이기 때문에 보행자의 패턴으로써 reconstruct 되었다.
+
 - 그래서 트럭의 predicted motion은 ground truth와 완전히 다르다.
+
 - 맨 오른쪽 자전거도 마찬가다.
+
+  
 
 ![4](4.png)
 
 
 
-
-
 - 자전거는 처음 보는 객체이기 때문에 보행자와 배경과 비슷한 밝기로 표시 되었다.
 
+  
+  
+  
+  
   ![5](5.png)
 
 
@@ -298,7 +413,8 @@ $t$ : the frame index in a video containing $m$ frames
 
 
 - 모델은 훈련 데이터에서 관찰된 것 처럼 느린 이동속도와 다른 모션 방향을 예상했다.
-- 재구성한 남자의 바지 색상은 배경이 잘 복원된 상태에서 입력 프레임과 약간 다르다. 이것은 패턴의 색상과 움직임 사이에 낮은 유의관계를 보여준다.
+
+  
 
 <div style="page-break-after: always; break-after: page;"></div>
 
@@ -364,7 +480,7 @@ Traffic-Belleview
 
 Traffic-Traing
 
-- camera jitter에 따라 lighting condition이 심하게 변한다.
+- **camera jitter에 따라 lighting condition이 심하게 변한다.**
 - 사람의 움직임을 이상으로 간주
 
 ![9](9.png)
@@ -377,11 +493,13 @@ Traffic-Traing
 
 - 움직임이 매우 nosy 하고 가운데 승객을 error map에서는 놓쳤다. 
 
-
-
 - 카메라 지터의 영향을 줄이기 위한 시도로, motion의 support 없는 다른 프레임 레벨 점수를 추정했다. 
+
 - 구체적으로는 Structure Similarity Idex(SSIM)[50]를 사용하여 입력 프레임과  appearance stream이 만드는 reconstruction의 유사성을 계산했다. MSE나 PSNR과 같은 다른 일반적인 측정과 비교하여 SSIM은 픽셀별 비교가 적절하지 않은 지터 영상에서 잘 작동할 수 있다.
+
 - 표 3은 이러한 변경이 특히 열차 데이터 세트를 통해 이상 징후 감지 결과를 개선했음을 보여준다. ROC 및 PR 곡선, 일부 형상 지도의 시각화 및 각 단일 스트림의 평가 결과를 포함한 자세한 내용은 보충 자료에서 제공된다.
+
+  
 
 ![10](10.png)
 
