@@ -55,7 +55,9 @@
 
 
 * By learning regular spatio-temporal patterns of skeleton features.
-* Skeletal movement를 두개의 sub-component로 분리: global body movement와 local body posture.
+* Skeletal movement를 두개의 sub-component로 분리
+  * **global body movement**: tracks **the dynamics of the whole body in the scene**
+  * **local body posture**: the local posture describes **the skeleton configuration** in the canonical coordinate frame of the body’s bounding box, where the global movement has been factored out.
 
 
 
@@ -89,49 +91,6 @@
 
 
 <div style="page-break-after: always; break-after: page;"></div>
-
-### 종합 정보(객체 탐지 + 오토인코더 + time-stamp 등)를 이용한 이상 탐지
-
-
-
-[Challenges in Time-Stamp Aware Anomaly Detection in Traffic Videos](https://arxiv.org/abs/1906.04574)
-
-- 교통 상황에서 Time-stamp를 인식하여 이상 상황을 탐지하는 것은 지능형 교통 시스템에서 필수적인 작업
-- 비디오에서 이상 탐지는 비정상 이벤트 발생이 드물고, 다른 유형의 이상 동작이 일관되지 않고 정상 및 비정상 시나리오에 대해 사용 가능한 데이터가 매우 불균형하기 때문에 까다로운 문제
-- 교통 상황에서 비정상 상황은 시간, 장소 및 환경에 따라 달라질 수 있다
-  - 도로에서 자동차를 운전하는 것은 정상이지만, 고속도로에서 정체된 자동차는 이상
-  - 주차장에서 움직이지 않는 자동차는 정상행동
-  - 신호등 근처에서 정차된 차량은 신호가 빨간색 일 때는 정상이지만 녹색 일 때는 비정상
-
-
-
-![20](20.png)
-
-
-
-- **적절한 특징 추출, 정상 교통 상황 정의, 정상 및 비정상 데이터의 클래스 불균형 분포 처리, 비정상 동작의 변화 해결, 비정상적인 이벤트의 발생 감소, 환경 변화, 카메라 움직임** 등이 앞으로 해결해야하는 과제
-
-  
-
-- 논문에서는 이상 상황을 탐지하기 위해 비디오의 모션 패턴을 학습하는 3단계의 파이프라인을 제안
-
-  - 움직임이 없는 객체를 식별하기 위해 최근 프레임으로부터 배경 추출
-
-    - 배경 이미지는 프레임 내에서 정상 및 비정상 동작을 localization 하는데 사용됨
-
-  - 추정된 배경에서 관심 대상을 검출
-
-    - 관심 대상: 차량 및 신호등이 포함될 수 있음 $\rightarrow$ 종합적인 상황 인식을 위해서
-
-  - time-stamp aware anomaly detection 알고리즘에 기초하여 교통 상황에서의 이상 탐지를 수행
-
-    
-
-    ![21](21.png)
-
-    
-
-    ![22](22.png)
 
 
 
@@ -208,9 +167,9 @@
   
   
   
-- $l_2$ loss 만 사용하면 output에 blur가 되는 단점이 있어 input이미지의 gradient loss 추가 :
-    
-    
+- $l_2$ loss 만 사용하면 output에 blur가 되는 단점이 있어 input이미지의 **gradient loss** 추가 :
+  
+  
     $$
     \mathcal{L}_{\text{grad}} (I, \hat{I}) = sum_{d \in \{x,y\}} \left| \left| |g_d(I)| - |g_d(\hat{I})| \right| \right|_1 \qquad  (2)
     $$
@@ -228,7 +187,7 @@ $$
 
 
 
-- ground truth로 optical flow([retrained FlowNet2) 사용
+- ground truth로 **optical flow([retrained FlowNet2)** 사용
 - the skip connection 사용
 
 
@@ -247,6 +206,10 @@ $$
 $F_t$ : the ground truth optical flow estimated from two consecutive frames $I_t$ and $I_{t+1}$ 
 
 $\hat{F}_t$ : the output of our U-Net given $I_t$   
+
+
+
+ In summary, this stream attempts **to predict instant motions of objects** appearing in the video
 
 
 
@@ -388,6 +351,16 @@ $t$ : the frame index in a video containing $m$ frames
 
 ![3](3.png)
 
+Each example consists of 3 image columns that are 
+
+- input frame and its optical flow (left), 
+- reconstructed frame and predicted motion (middle), 
+- and the frame superimposed by the motion error map below (right).
+
+
+
+
+
 - 트럭은 처음 보는 객체이기 때문에 보행자의 패턴으로써 reconstruct 되었다.
 
 - 그래서 트럭의 predicted motion은 ground truth와 완전히 다르다.
@@ -437,7 +410,7 @@ $t$ : the frame index in a video containing $m$ frames
 
 
 - FA(false alarm)이 다른 방법에 비해 높다. 
-  - 테스트 세트에서 정상으로 표시된 일부 이벤트가 다른 상황에서는 이상으로 간주될 수 있기 때문.
+  - **테스트 세트에서 정상으로 표시된 일부 이벤트가 다른 상황에서는 이상으로 간주될 수 있기 때문.**
 
 
 
@@ -493,9 +466,9 @@ Traffic-Traing
 
 - 움직임이 매우 nosy 하고 가운데 승객을 error map에서는 놓쳤다. 
 
-- 카메라 지터의 영향을 줄이기 위한 시도로, motion의 support 없는 다른 프레임 레벨 점수를 추정했다. 
+- 카메라 지터의 영향을 줄이기 위한 시도로, "Anomaly detection" 절에서 사용한  motion의 support 없이 또 **다른  프레임 레벨 점수를 추정**했다. 
 
-- 구체적으로는 Structure Similarity Idex(SSIM)[50]를 사용하여 입력 프레임과  appearance stream이 만드는 reconstruction의 유사성을 계산했다. MSE나 PSNR과 같은 다른 일반적인 측정과 비교하여 SSIM은 픽셀별 비교가 적절하지 않은 지터 영상에서 잘 작동할 수 있다.
+- 구체적으로는 **Structure Similarity Idex(SSIM)[50]**를 사용하여 입력 프레임과  appearance stream이 만드는 reconstruction의 유사성을 계산했다. MSE나 PSNR과 같은 다른 일반적인 측정과 비교하여 SSIM은 픽셀별 비교가 적절하지 않은 지터 영상에서 잘 작동할 수 있다.
 
 - 표 3은 이러한 변경이 특히 열차 데이터 세트를 통해 이상 징후 감지 결과를 개선했음을 보여준다. ROC 및 PR 곡선, 일부 형상 지도의 시각화 및 각 단일 스트림의 평가 결과를 포함한 자세한 내용은 보충 자료에서 제공된다.
 
@@ -508,9 +481,28 @@ Traffic-Traing
 
 
 - optical flow estimator의 영향은 두개의 차가 big blob로 결합된 Figure 6(c)에 잘 설명되어 있다. 이 잘못된 추정으로 인해 다른 방향으로 달리는 3대의 차는 정확하게 찾아 냈음에도 불구하고 error map에 큰 영향을 미쳤다.
-  - 다른 optical flow 를 선택하거나 FlowNet2를 좀 더 적절한 데이터 셋으로 pretrain 시킴으로써 개선할 수 있을 것이다.
+  - <u>다른 optical flow 를 선택하거나 FlowNet2를 좀 더 적절한 데이터 셋으로 pretrain 시킴으로써 개선</u>할 수 있을 것이다.
 
 
+
+<div style="page-break-after: always; break-after: page;"></div>
+
+## Conclusion
+
+
+
+이 논문에서는 pattern appearance와 그것과 관련된 motion과의 correspondence를 이용하는 anomaly detection approach를 제안했다.
+
+
+
+모델은 두개의 stream으로 구성되어 있다.
+
+- reconstruct the appearance
+- predict the instant motion 
+
+
+
+모델의 output에서  noise의 영향을 줄이기 위해 anomaly score estimation로써 path-based scheme를 제안했다.
 
 
 
