@@ -92,13 +92,9 @@
 
 <div style="page-break-after: always; break-after: page;"></div>
 
-
-
-<div style="page-break-after: always; break-after: page;"></div>
-
 ## Abstract
 
--  Video sruveillance에서 anomaly detection은 **가능한 이벤트가 많기 때문에** 어렵다. 
+-  Video surveillance에서 anomaly detection은 **가능한 이벤트가 많기 때문에** 어렵다. 
 -  이 논문에서는  **common object appearances** (e.g. pedestrian, background, tree, etc.) 와 **그것과 관련된 motions** 사의 관련성을 학습함으로써 해결했다.
 - 하나의 encoder를 공유하는 reconstruction network와 image translation 모델의 조합을 제안
   - **a reconstruction network** :  비디오 프레임에서 가장 중요한 structure 
@@ -219,11 +215,7 @@ $\hat{F}_t$ : the output of our U-Net given $I_t$
 
 ![12](12.png)
 
-
-
 - 예측된 optical flow 기본 분포가 groud truth에 더 가까워지도록 distance-based loss $L_\text{flow}$ 외에 추가적으로 GAN Loss 적용
-
-
 
 $I$ :  입력 비디오
 
@@ -238,22 +230,14 @@ $I$ :  입력 비디오
 $\mathcal{D}$ : discriminator 
 
 
-
-
 $$
 \mathcal{L}_\mathcal{D}(I,F, \hat{F}) = { 1 \over 2} \sum_{x,y,c} -log\ \mathcal{D}(I,F)_{x,y,c} + { 1 \over 2} \sum_{x,y,c} -log\ [1-\mathcal{D}(I,\hat{F})_{x,yc}] \qquad \qquad \qquad (5)
 $$
-
-
-
-
 
 $$
 \mathcal{L}_{\mathcal{G}} (I,\hat{I},F,\hat{F}) = \lambda_{\mathcal{G}} \sum_{x,y,c} -log\ \mathcal{D}(I, \hat{F})_{x,y,c} \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \\
 + \lambda_a \mathcal{L}_{\text{appe}}(I, \hat{I}) + \lambda_f \mathcal{L}_\text{flow}(F,\hat{F}) \qquad \qquad \qquad(6)
 $$
-
-
 
 
 $\lambda_\mathcal{G}$ : 0.25
@@ -262,20 +246,26 @@ $\lambda_a$ : 1
 
 $\lambda_f$ : 2
 
-
-
 <div style="page-break-after: always; break-after: page;"></div>
 
 ###  Anomaly detection
 
 
 
- CNN 방법에서 사용하는 2가지 common score
+* 목적: a score of normality for each frame
+* 일반적으로 ground truth와 reconstruct/predicted output 사이의 유사성을 측정
+*  CNN 방법에서 사용하는 2가지 common score
+  * $L_p$ distance
+  * Peak Signal To Noise Ratio (PSNR)
+  * 문제점:  모든 pixel을 summation 하거나 평균을 계산하게 되면 작은 이미지 영역에서 발생하는 anomalous event를 detect  하기 어렵다.
 
-- $L_p$ distance
-- Peak Signal To Noise Ratio (PSNR)
 
 
+* 새로운 score estimation scheme : 전체 프레임 대신에 small patch 만을 고려하는
+
+
+
+1. <u>같은 patch position을 공유하는 두개의 모델 스트림을 개별적으로 추정하는 부분 score 정의</u>
 
 
 
@@ -285,20 +275,18 @@ S_I(P) = {1 \over {|P|}} \sum_{i,j \in P} (I_{i,j} - \hat{I}_{i,j})^2   \\
 S_F(p) = {1 \over {|P|}} \sum_{i,j \in P} (F_{i,j} - \hat{F}_{i,j})^2 
 \end{cases} \qquad \qquad \qquad (7)
 $$
-$P$ : 이미지 패치 (16x16)
+$P$ : 이미지 패치 (예: 16x16)
 
 $|P|$ : 이미지 패치의 픽셀 수
 
 
 
+2. <u>프레임 레벨의 스코어 계산</u>
+
 $$
 S= log[w_FS_F(\tilde{P})] + \lambda_S log[w_IS_I(\tilde{P})] \qquad \qquad \qquad (8)
 $$
 $w_F$ , $w_I$ : the weights calculated according to the training data 
-
-
-
-
 
 $$
 \begin{cases}
@@ -307,17 +295,20 @@ w_I = \left[ {1 \over n} \sum_{i=1} ^n S_{I_i}(\tilde{P}_i) \right]^{-1}
 \end{cases} \qquad \qquad \qquad (10)
 $$
 
-
 $\lambda_S$ :  control the contribution of partial scores to the summation (0.2)
 
-$\tilde{P}$ :  the patch providing the highest value of $S_F$ in the considering frame
+​	  :  효율적인 motion prediction에 초점을 맞추고 있기 때문
+
+$\tilde{P}$ :  프레임에서 $S_F$ 가 제일 높은 patch
 
 
 $$
 \tilde{P} \leftarrow \underset{\text{P slides on frame}}{\text{argmax}} S_F(P) \qquad \qquad \qquad (9)
 $$
 
-a normalization on frame-level scores in each evaluated video
+
+
+3. <u>a normalization on frame-level scores in each evaluated video</u>
 
 
 $$
